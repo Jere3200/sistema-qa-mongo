@@ -17,6 +17,7 @@ function mapTestCase(row: Record<string, unknown>): TestCase {
     executedAt: row.executed_at ? new Date(row.executed_at as string) : null,
     executedBy: (row.executed_by as string) || null,
     notes: (row.notes as string) || '',
+    assignedTo: (row.assigned_to as string) || null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   }
@@ -89,6 +90,7 @@ export async function updateTestCase(id: string, data: Partial<TestCase>): Promi
   if (data.executedAt !== undefined) updates.executed_at = data.executedAt?.toISOString() || null
   if (data.executedBy !== undefined) updates.executed_by = data.executedBy
   if (data.notes !== undefined) updates.notes = data.notes
+  if (data.assignedTo !== undefined) updates.assigned_to = data.assignedTo || null
 
   const { data: row, error } = await supabase
     .from('test_cases')

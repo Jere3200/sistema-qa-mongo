@@ -36,6 +36,7 @@ export interface UserStory {
   status: UserStoryStatus
   priority: UserStoryPriority
   acceptanceCriteria: AcceptanceCriterion[]
+  assignedTo: string | null // user_id
   createdAt: Date
   updatedAt: Date
 }
@@ -63,6 +64,7 @@ export interface TestCase {
   executedAt: Date | null
   executedBy: string | null
   notes: string
+  assignedTo: string | null // user_id
   createdAt: Date
   updatedAt: Date
 }

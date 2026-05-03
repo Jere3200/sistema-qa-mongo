@@ -12,6 +12,8 @@ import {
   Trash2,
   ArrowRight,
   Users,
+  UserCheck,
+  X,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -37,12 +39,21 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 
-import { getProject, getModules, getUserStories, getTestCases, deleteModule } from '@/lib/store'
+import { getProject, getModules, getUserStories, getTestCases, deleteModule, updateUserStory, updateTestCase, getProjectMembers } from '@/lib/store'
 import type { Project, Module, UserStory, TestCase } from '@/lib/types'
+import type { ProjectMember } from '@/lib/db/projects'
 import { ModuleDialog } from './module-dialog'
 import { ChatPanel } from '@/components/collaboration/chat-panel'
 import { PresenceAvatars } from '@/components/collaboration/presence-avatars'
 import { InviteMemberDialog } from '@/components/collaboration/invite-member-dialog'
+import { useAuth } from '@/components/auth/auth-provider'
+import {
+  DropdownMenu as AssignDropdown,
+  DropdownMenuContent as AssignContent,
+  DropdownMenuItem as AssignItem,
+  DropdownMenuTrigger as AssignTrigger,
+  DropdownMenuSeparator as AssignSeparator,
+} from '@/components/ui/dropdown-menu'
 
 const statusColors = {
   backlog: 'bg-muted text-muted-foreground',
@@ -63,10 +74,12 @@ interface ProjectDetailProps {
 }
 
 export function ProjectDetail({ projectId }: ProjectDetailProps) {
+  const { sesion } = useAuth()
   const [project, setProject] = useState<Project | null>(null)
   const [modules, setModules] = useState<Module[]>([])
   const [userStories, setUserStories] = useState<UserStory[]>([])
   const [testCases, setTestCases] = useState<TestCase[]>([])
+  const [members, setMembers] = useState<ProjectMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   const [moduleDialogOpen, setModuleDialogOpen] = useState(false)
@@ -78,17 +91,19 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
 
   const loadData = async () => {
     try {
-      const [p, m, us, tc] = await Promise.all([
+      const [p, m, us, tc, mem] = await Promise.all([
         getProject(projectId),
         getModules(projectId),
         getUserStories(projectId),
         getTestCases(projectId),
+        getProjectMembers(projectId),
       ])
       if (!p) return
       setProject(p)
       setModules(m)
       setUserStories(us)
       setTestCases(tc)
+      setMembers(mem)
     } catch {
       toast.error('Error al cargar el proyecto')
     } finally {
@@ -211,6 +226,10 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
           <TabsList>
             <TabsTrigger value="modules">Por Módulos</TabsTrigger>
             <TabsTrigger value="all">Todas las Historias</TabsTrigger>
+            <TabsTrigger value="tasks">
+              <UserCheck className="size-3.5 mr-1.5" />
+              Asignaciones
+            </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => { setEditingModule(null); setModuleDialogOpen(true) }}>
@@ -330,6 +349,23 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
           )}
         </TabsContent>
 
+        <TabsContent value="tasks" className="mt-4 space-y-4">
+          <AssignmentsTab
+            userStories={userStories}
+            testCases={testCases}
+            members={members}
+            currentUserId={sesion?.id ?? ''}
+            onAssignStory={async (storyId, userId) => {
+              await updateUserStory(storyId, { assignedTo: userId })
+              await loadData()
+            }}
+            onAssignTestCase={async (tcId, userId) => {
+              await updateTestCase(tcId, { assignedTo: userId })
+              await loadData()
+            }}
+          />
+        </TabsContent>
+
         <TabsContent value="all" className="mt-4">
           <Card>
             <CardHeader>
@@ -412,6 +448,152 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
       <InviteMemberDialog open={inviteOpen} onOpenChange={setInviteOpen} projectId={projectId} />
 
       {chatOpen && <ChatPanel projectId={projectId} onClose={() => setChatOpen(false)} />}
+    </div>
+  )
+}
+
+interface AssignmentsTabProps {
+  userStories: UserStory[]
+  testCases: TestCase[]
+  members: ProjectMember[]
+  currentUserId: string
+  onAssignStory: (storyId: string, userId: string | null) => Promise<void>
+  onAssignTestCase: (tcId: string, userId: string | null) => Promise<void>
+}
+
+function AssignmentsTab({ userStories, testCases, members, currentUserId, onAssignStory, onAssignTestCase }: AssignmentsTabProps) {
+  const getMemberName = (userId: string | null) => {
+    if (!userId) return null
+    return members.find((m) => m.userId === userId)?.nombre ?? null
+  }
+
+  const AssignButton = ({
+    assignedTo,
+    onAssign,
+    onUnassign,
+  }: {
+    assignedTo: string | null
+    onAssign: (userId: string | null) => void
+    onUnassign: () => void
+  }) => {
+    const name = getMemberName(assignedTo)
+    return (
+      <AssignDropdown>
+        <AssignTrigger asChild>
+          <button className={`flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 border transition-colors ${
+            assignedTo ? 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100' : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'
+          }`}>
+            {assignedTo ? (
+              <>
+                <span className="size-4 rounded-full bg-teal-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                  {name?.charAt(0).toUpperCase()}
+                </span>
+                {name}
+              </>
+            ) : (
+              <>
+                <Users className="size-3" />
+                Asignar
+              </>
+            )}
+          </button>
+        </AssignTrigger>
+        <AssignContent align="end" className="w-48">
+          {currentUserId && !members.find(m => m.userId === currentUserId) ? null : (
+            <AssignItem onClick={() => onAssign(currentUserId)}>
+              <UserCheck className="mr-2 size-4 text-teal-600" />
+              Asignarme
+            </AssignItem>
+          )}
+          {members.filter((m) => m.userId !== currentUserId).map((m) => (
+            <AssignItem key={m.userId} onClick={() => onAssign(m.userId)}>
+              <span className="size-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold mr-2 shrink-0">
+                {m.nombre.charAt(0).toUpperCase()}
+              </span>
+              {m.nombre}
+            </AssignItem>
+          ))}
+          {assignedTo && (
+            <>
+              <AssignSeparator />
+              <AssignItem onClick={onUnassign} className="text-destructive focus:text-destructive">
+                <X className="mr-2 size-4" />
+                Quitar asignación
+              </AssignItem>
+            </>
+          )}
+        </AssignContent>
+      </AssignDropdown>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BookOpen className="size-4 text-purple-500" />
+            Historias de Usuario
+          </CardTitle>
+          <CardDescription className="text-xs">Asigná responsables a cada historia</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {userStories.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No hay historias en este proyecto</p>
+          ) : (
+            <div className="space-y-2">
+              {userStories.map((story) => (
+                <div key={story.id} className="flex items-center justify-between p-3 rounded-lg border gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted-foreground shrink-0">{story.code}</span>
+                      <span className="text-sm font-medium truncate">{story.title}</span>
+                    </div>
+                  </div>
+                  <AssignButton
+                    assignedTo={story.assignedTo}
+                    onAssign={(uid) => onAssignStory(story.id, uid)}
+                    onUnassign={() => onAssignStory(story.id, null)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <TestTube2 className="size-4 text-teal-500" />
+            Casos de Prueba
+          </CardTitle>
+          <CardDescription className="text-xs">Asigná testers a cada caso</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {testCases.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No hay casos de prueba en este proyecto</p>
+          ) : (
+            <div className="space-y-2">
+              {testCases.map((tc) => (
+                <div key={tc.id} className="flex items-center justify-between p-3 rounded-lg border gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-muted-foreground shrink-0">{tc.code}</span>
+                      <span className="text-sm font-medium truncate">{tc.title}</span>
+                    </div>
+                  </div>
+                  <AssignButton
+                    assignedTo={tc.assignedTo}
+                    onAssign={(uid) => onAssignTestCase(tc.id, uid)}
+                    onUnassign={() => onAssignTestCase(tc.id, null)}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -26,6 +26,7 @@ function mapStory(row: Record<string, unknown>): UserStory {
     status: row.status as UserStory['status'],
     priority: row.priority as UserStory['priority'],
     acceptanceCriteria: criteria,
+    assignedTo: (row.assigned_to as string) || null,
     createdAt: new Date(row.created_at as string),
     updatedAt: new Date(row.updated_at as string),
   }
@@ -106,6 +107,7 @@ export async function updateUserStory(id: string, data: Partial<UserStory>): Pro
   if (data.soThat !== undefined) updates.so_that = data.soThat
   if (data.status !== undefined) updates.status = data.status
   if (data.priority !== undefined) updates.priority = data.priority
+  if (data.assignedTo !== undefined) updates.assigned_to = data.assignedTo || null
 
   const { data: row, error } = await supabase
     .from('user_stories')
