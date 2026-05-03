@@ -42,6 +42,7 @@ import { toast } from 'sonner'
 import { getProject, getModules, getUserStories, getTestCases, deleteModule, updateUserStory, updateTestCase, getProjectMembers } from '@/lib/store'
 import type { Project, Module, UserStory, TestCase } from '@/lib/types'
 import type { ProjectMember } from '@/lib/db/projects'
+import { getAvatarColor, getAvatarInitial } from '@/lib/utils/avatar-color'
 import { ModuleDialog } from './module-dialog'
 import { ChatPanel } from '@/components/collaboration/chat-panel'
 import { PresenceAvatars } from '@/components/collaboration/presence-avatars'
@@ -230,6 +231,9 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
               <UserCheck className="size-3.5 mr-1.5" />
               Asignaciones
             </TabsTrigger>
+            <TabsTrigger value="metrics">
+              Métricas
+            </TabsTrigger>
           </TabsList>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => { setEditingModule(null); setModuleDialogOpen(true) }}>
@@ -417,6 +421,14 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
         </TabsContent>
       </Tabs>
 
+        <TabsContent value="metrics" className="mt-4">
+          <ProjectMetricsTab
+            userStories={userStories}
+            testCases={testCases}
+            modules={modules}
+          />
+        </TabsContent>
+
       <ModuleDialog
         open={moduleDialogOpen}
         onOpenChange={setModuleDialogOpen}
@@ -477,16 +489,17 @@ function AssignmentsTab({ userStories, testCases, members, currentUserId, onAssi
     onUnassign: () => void
   }) => {
     const name = getMemberName(assignedTo)
+    const assignedColor = name ? getAvatarColor(name) : null
     return (
       <AssignDropdown>
         <AssignTrigger asChild>
           <button className={`flex items-center gap-1.5 text-xs rounded-full px-2.5 py-1 border transition-colors ${
-            assignedTo ? 'bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100' : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'
+            assignedTo ? 'bg-muted/60 border-border text-foreground hover:bg-muted' : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'
           }`}>
-            {assignedTo ? (
+            {assignedTo && name ? (
               <>
-                <span className="size-4 rounded-full bg-teal-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                  {name?.charAt(0).toUpperCase()}
+                <span className={`size-4 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${assignedColor?.bg} ${assignedColor?.text}`}>
+                  {getAvatarInitial(name)}
                 </span>
                 {name}
               </>
@@ -505,14 +518,17 @@ function AssignmentsTab({ userStories, testCases, members, currentUserId, onAssi
               Asignarme
             </AssignItem>
           )}
-          {members.filter((m) => m.userId !== currentUserId).map((m) => (
-            <AssignItem key={m.userId} onClick={() => onAssign(m.userId)}>
-              <span className="size-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold mr-2 shrink-0">
-                {m.nombre.charAt(0).toUpperCase()}
-              </span>
-              {m.nombre}
-            </AssignItem>
-          ))}
+          {members.filter((m) => m.userId !== currentUserId).map((m) => {
+            const { bg, text } = getAvatarColor(m.nombre)
+            return (
+              <AssignItem key={m.userId} onClick={() => onAssign(m.userId)}>
+                <span className={`size-5 rounded-full flex items-center justify-center text-xs font-bold mr-2 shrink-0 ${bg} ${text}`}>
+                  {getAvatarInitial(m.nombre)}
+                </span>
+                {m.nombre}
+              </AssignItem>
+            )
+          })}
           {assignedTo && (
             <>
               <AssignSeparator />
@@ -590,6 +606,139 @@ function AssignmentsTab({ userStories, testCases, members, currentUserId, onAssi
                   />
                 </div>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+interface ProjectMetricsTabProps {
+  userStories: UserStory[]
+  testCases: TestCase[]
+  modules: Module[]
+}
+
+const storyStatusConfig = [
+  { key: 'backlog' as const, label: 'Backlog', barColor: 'bg-gray-400' },
+  { key: 'in-progress' as const, label: 'En Progreso', barColor: 'bg-blue-500' },
+  { key: 'testing' as const, label: 'En Pruebas', barColor: 'bg-amber-500' },
+  { key: 'done' as const, label: 'Completado', barColor: 'bg-emerald-500' },
+]
+
+const testStatusConfig = [
+  { key: 'pending' as const, label: 'Pendiente', barColor: 'bg-gray-400' },
+  { key: 'passed' as const, label: 'Aprobado', barColor: 'bg-emerald-500' },
+  { key: 'failed' as const, label: 'Fallido', barColor: 'bg-red-500' },
+  { key: 'blocked' as const, label: 'Bloqueado', barColor: 'bg-purple-500' },
+]
+
+function ProjectMetricsTab({ userStories, testCases, modules }: ProjectMetricsTabProps) {
+  const storiesWithTests = new Set(testCases.map((t) => t.userStoryId)).size
+  const coveragePercent = userStories.length > 0 ? Math.round((storiesWithTests / userStories.length) * 100) : 0
+  const completedStories = userStories.filter((s) => s.status === 'done').length
+  const completionPercent = userStories.length > 0 ? Math.round((completedStories / userStories.length) * 100) : 0
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BookOpen className="size-4 text-purple-500" />
+              Historias por Estado
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {storyStatusConfig.map(({ key, label, barColor }) => {
+              const count = userStories.filter((s) => s.status === key).length
+              const pct = userStories.length > 0 ? Math.round((count / userStories.length) * 100) : 0
+              return (
+                <div key={key} className="flex items-center gap-3">
+                  <div className="w-24 text-xs text-muted-foreground shrink-0">{label}</div>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="w-10 text-right text-xs text-muted-foreground shrink-0">{count} ({pct}%)</div>
+                </div>
+              )
+            })}
+            <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
+              <span>Total: {userStories.length} historias</span>
+              <span className="font-medium text-emerald-600">{completionPercent}% completado</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TestTube2 className="size-4 text-teal-500" />
+              Casos de Prueba por Estado
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {testStatusConfig.map(({ key, label, barColor }) => {
+              const count = testCases.filter((t) => t.status === key).length
+              const pct = testCases.length > 0 ? Math.round((count / testCases.length) * 100) : 0
+              return (
+                <div key={key} className="flex items-center gap-3">
+                  <div className="w-24 text-xs text-muted-foreground shrink-0">{label}</div>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="w-10 text-right text-xs text-muted-foreground shrink-0">{count} ({pct}%)</div>
+                </div>
+              )
+            })}
+            <div className="pt-2 border-t text-xs text-muted-foreground flex justify-between">
+              <span>Total: {testCases.length} casos</span>
+              <span className="font-medium text-emerald-600">
+                {testCases.length > 0 ? Math.round((testCases.filter(t => t.status === 'passed').length / testCases.length) * 100) : 0}% aprobados
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">Cobertura por Módulo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {modules.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No hay módulos definidos</p>
+          ) : (
+            <div className="space-y-3">
+              {modules.map((mod) => {
+                const modStories = userStories.filter((s) => s.moduleId === mod.id)
+                const modTests = testCases.filter((tc) => modStories.some((s) => s.id === tc.userStoryId))
+                const modCoverage = modStories.length > 0
+                  ? Math.round((new Set(modTests.map(t => t.userStoryId)).size / modStories.length) * 100)
+                  : 0
+                return (
+                  <div key={mod.id} className="flex items-center gap-3">
+                    <div className="w-32 text-xs font-medium truncate shrink-0">{mod.name}</div>
+                    <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${modCoverage === 100 ? 'bg-emerald-500' : modCoverage >= 50 ? 'bg-amber-500' : 'bg-red-400'}`}
+                        style={{ width: `${modCoverage}%` }}
+                      />
+                    </div>
+                    <div className="w-24 text-right text-xs text-muted-foreground shrink-0">
+                      {modCoverage}% — {modStories.length} historias
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="pt-2 border-t flex items-center gap-3">
+                <div className="w-32 text-xs font-semibold shrink-0">Total proyecto</div>
+                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full bg-teal-500 transition-all duration-500" style={{ width: `${coveragePercent}%` }} />
+                </div>
+                <div className="w-24 text-right text-xs font-medium shrink-0">{coveragePercent}% cobertura</div>
+              </div>
             </div>
           )}
         </CardContent>

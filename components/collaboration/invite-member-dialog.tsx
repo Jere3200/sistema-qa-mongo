@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator'
 import { getProjectMembers, inviteMember, removeMember, getProjectOwnerId } from '@/lib/store'
 import { useAuth } from '@/components/auth/auth-provider'
 import type { ProjectMember } from '@/lib/db/projects'
+import { getAvatarColor, getAvatarInitial } from '@/lib/utils/avatar-color'
 
 interface InviteMemberDialogProps {
   open: boolean
@@ -127,8 +128,8 @@ export function InviteMemberDialog({ open, onOpenChange, projectId }: InviteMemb
               className="flex items-center justify-between p-3 rounded-lg border"
             >
               <div className="flex items-center gap-3">
-                <div className="size-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-                  {member.nombre.charAt(0).toUpperCase()}
+                <div className={`size-8 rounded-full flex items-center justify-center text-sm font-semibold ${getAvatarColor(member.nombre).bg} ${getAvatarColor(member.nombre).text}`}>
+                  {getAvatarInitial(member.nombre)}
                 </div>
                 <div>
                   <p className="text-sm font-medium">{member.nombre}</p>

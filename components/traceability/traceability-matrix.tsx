@@ -10,11 +10,14 @@ import {
   AlertCircle,
   Search,
   Download,
+  FileText,
   ChevronDown,
   ChevronRight,
   TestTube2,
   BookOpen,
 } from 'lucide-react'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -137,7 +140,7 @@ export function TraceabilityMatrix() {
     setExpandedRows(next)
   }
 
-  const exportMatrix = () => {
+  const exportCSV = () => {
     const project = projects.find((p) => p.id === projectFilter)
     const csv = [
       ['Código US', 'Título', 'Estado', 'Cobertura', 'Puede Completarse', 'Casos de Prueba', 'TC Aprobados', 'TC Fallidos'].join(','),
@@ -154,13 +157,73 @@ export function TraceabilityMatrix() {
         ].join(',')
       ),
     ].join('\n')
-
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
     link.download = `trazabilidad-${project?.name || 'proyecto'}-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
-    toast.success('Matriz exportada')
+    toast.success('CSV exportado')
+  }
+
+  const exportPDF = () => {
+    const project = projects.find((p) => p.id === projectFilter)
+    const projectName = project?.name || 'Proyecto'
+    const dateStr = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+
+    const doc = new jsPDF({ orientation: 'landscape' })
+    doc.setFontSize(16)
+    doc.setTextColor(20, 120, 120)
+    doc.text(`Matriz de Trazabilidad — ${projectName}`, 14, 18)
+    doc.setTextColor(100, 100, 100)
+    doc.setFontSize(9)
+    doc.text(`Generado el ${dateStr}  |  Cobertura: ${stats.coveragePercent}%  |  Historias: ${stats.total}  |  Sin cobertura: ${stats.noCoverage}`, 14, 25)
+
+    const tableRows = filteredMatrix.map((row) => {
+      const mod = modules.find((m) => m.id === row.userStory.moduleId)
+      return [
+        row.userStory.code,
+        row.userStory.title.length > 55 ? row.userStory.title.substring(0, 52) + '...' : row.userStory.title,
+        mod?.name ?? '—',
+        statusLabels[row.userStory.status],
+        coverageLabels[row.coverage],
+        row.canComplete ? 'Sí' : 'No',
+        String(row.testCases.length),
+        String(row.testCases.filter((tc) => tc.status === 'passed').length),
+        String(row.testCases.filter((tc) => tc.status === 'failed').length),
+      ]
+    })
+
+    autoTable(doc, {
+      head: [['Código', 'Historia de Usuario', 'Módulo', 'Estado US', 'Cobertura', 'Completable', 'TCs', '✓ OK', '✗ Fail']],
+      body: tableRows,
+      startY: 30,
+      theme: 'grid',
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [20, 184, 166], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 250, 250] },
+      columnStyles: {
+        0: { cellWidth: 18, fontStyle: 'bold' },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 25 },
+        5: { cellWidth: 22, halign: 'center' },
+        6: { cellWidth: 12, halign: 'center' },
+        7: { cellWidth: 12, halign: 'center' },
+        8: { cellWidth: 12, halign: 'center' },
+      },
+    })
+
+    const pageCount = (doc as unknown as { internal: { getNumberOfPages: () => number } }).internal.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+      doc.setFontSize(7)
+      doc.setTextColor(150)
+      doc.text(`RQA-Tracer  |  Página ${i} de ${pageCount}`, 14, doc.internal.pageSize.height - 8)
+    }
+
+    doc.save(`trazabilidad-${projectName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`)
+    toast.success('PDF generado')
   }
 
   if (isLoading) {
@@ -184,10 +247,16 @@ export function TraceabilityMatrix() {
             Visualiza la relación entre historias de usuario y casos de prueba
           </p>
         </div>
-        <Button variant="outline" onClick={exportMatrix} disabled={!projectFilter}>
-          <Download className="mr-2 size-4" />
-          Exportar CSV
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCSV} disabled={!projectFilter}>
+            <Download className="mr-2 size-4" />
+            CSV
+          </Button>
+          <Button variant="outline" onClick={exportPDF} disabled={!projectFilter}>
+            <FileText className="mr-2 size-4" />
+            PDF
+          </Button>
+        </div>
       </div>
 
       {projectFilter && (

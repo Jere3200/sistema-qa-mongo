@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import type { UserStory, AcceptanceCriterion } from '@/lib/types'
+import { logStatusChange } from './status-history'
 
 function mapCriterion(row: Record<string, unknown>): AcceptanceCriterion {
   return {
@@ -109,6 +110,10 @@ export async function updateUserStory(id: string, data: Partial<UserStory>): Pro
   if (data.priority !== undefined) updates.priority = data.priority
   if (data.assignedTo !== undefined) updates.assigned_to = data.assignedTo || null
 
+  const currentStory = data.status !== undefined
+    ? (await supabase.from('user_stories').select('status').eq('id', id).single()).data
+    : null
+
   const { data: row, error } = await supabase
     .from('user_stories')
     .update(updates)
@@ -116,6 +121,9 @@ export async function updateUserStory(id: string, data: Partial<UserStory>): Pro
     .select('*, acceptance_criteria(*)')
     .single()
   if (error || !row) return undefined
+  if (currentStory && data.status && currentStory.status !== data.status) {
+    logStatusChange({ storyId: id, oldStatus: currentStory.status, newStatus: data.status }).catch(() => {})
+  }
   return mapStory(row)
 }
 

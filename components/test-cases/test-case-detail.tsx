@@ -42,6 +42,7 @@ import { FieldGroup, Field, FieldLabel } from '@/components/ui/field'
 import { getTestCase, getProject, getUserStory, executeTestCase, deleteTestCase } from '@/lib/store'
 import { useAuth } from '@/components/auth/auth-provider'
 import type { TestCase, Project, UserStory, TestCaseStatus } from '@/lib/types'
+import { CommentSection } from '@/components/comments/comment-section'
 
 const statusLabels: Record<TestCaseStatus, string> = {
   pending: 'Pendiente',
@@ -325,6 +326,8 @@ export function TestCaseDetail({ testCaseId }: TestCaseDetailProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CommentSection testCaseId={testCase.id} />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>

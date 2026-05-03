@@ -44,8 +44,11 @@ import {
   getTestCasesByUserStory,
   updateUserStory,
   deleteUserStory,
+  getStatusHistory,
 } from '@/lib/store'
 import type { UserStory, Project, Module, TestCase, UserStoryStatus, TestCaseStatus } from '@/lib/types'
+import type { StatusHistoryEntry } from '@/lib/db/status-history'
+import { CommentSection } from '@/components/comments/comment-section'
 
 const statusLabels: Record<UserStoryStatus, string> = {
   backlog: 'Backlog',
@@ -93,6 +96,7 @@ export function UserStoryDetail({ storyId }: UserStoryDetailProps) {
   const [project, setProject] = useState<Project | null>(null)
   const [module, setModule] = useState<Module | null>(null)
   const [testCases, setTestCases] = useState<TestCase[]>([])
+  const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
@@ -100,15 +104,17 @@ export function UserStoryDetail({ storyId }: UserStoryDetailProps) {
     try {
       const s = await getUserStory(storyId)
       if (!s) return
-      const [p, mods, tcs] = await Promise.all([
+      const [p, mods, tcs, hist] = await Promise.all([
         getProject(s.projectId),
         getModules(s.projectId),
         getTestCasesByUserStory(storyId),
+        getStatusHistory(storyId),
       ])
       setStory(s)
       setProject(p || null)
       setModule(mods.find((m) => m.id === s.moduleId) || null)
       setTestCases(tcs)
+      setStatusHistory(hist)
     } catch {
       toast.error('Error al cargar la historia')
     } finally {
@@ -346,6 +352,43 @@ export function UserStoryDetail({ storyId }: UserStoryDetailProps) {
           )}
         </CardContent>
       </Card>
+
+      {statusHistory.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Clock className="size-4 text-muted-foreground" />
+              Historial de Estados
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative pl-5 space-y-3">
+              <div className="absolute left-2 top-1 bottom-1 w-px bg-border" />
+              {statusHistory.map((entry, i) => (
+                <div key={entry.id} className="relative flex items-start gap-3">
+                  <div className="absolute -left-3 top-1.5 size-2 rounded-full bg-border ring-2 ring-background" />
+                  <div className="text-xs text-muted-foreground min-w-0">
+                    <span className="font-medium text-foreground">{entry.authorName}</span>{' '}
+                    cambió de{' '}
+                    <Badge className={`text-xs ${statusColors[entry.oldStatus as UserStoryStatus] || 'bg-muted text-muted-foreground'}`}>
+                      {statusLabels[entry.oldStatus as UserStoryStatus] || entry.oldStatus}
+                    </Badge>{' '}
+                    a{' '}
+                    <Badge className={`text-xs ${statusColors[entry.newStatus as UserStoryStatus] || 'bg-muted text-muted-foreground'}`}>
+                      {statusLabels[entry.newStatus as UserStoryStatus] || entry.newStatus}
+                    </Badge>
+                    <span className="ml-2 text-muted-foreground">
+                      {entry.changedAt.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <CommentSection userStoryId={story.id} />
 
       <div className="text-xs text-muted-foreground">
         Creado el{' '}

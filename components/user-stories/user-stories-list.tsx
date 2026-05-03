@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { Plus, Search, BookOpen, ArrowRight, TestTube2 } from 'lucide-react'
+import { Plus, Search, BookOpen, ArrowRight, TestTube2, UserCheck } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,7 @@ import { toast } from 'sonner'
 
 import { getProjects, getUserStories, getTestCases, getModules } from '@/lib/store'
 import type { Project, UserStory, TestCase, Module, UserStoryStatus, UserStoryPriority } from '@/lib/types'
+import { useAuth } from '@/components/auth/auth-provider'
 
 const statusLabels: Record<UserStoryStatus, string> = {
   backlog: 'Backlog',
@@ -57,13 +58,17 @@ interface StoryWithMeta {
 }
 
 export function UserStoriesList() {
+  const { sesion } = useAuth()
   const [items, setItems] = useState<StoryWithMeta[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [allModules, setAllModules] = useState<Module[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [projectFilter, setProjectFilter] = useState<string>('all')
+  const [moduleFilter, setModuleFilter] = useState<string>('all')
+  const [assignedFilter, setAssignedFilter] = useState<string>('all')
 
   useEffect(() => {
     const load = async () => {
@@ -72,12 +77,14 @@ export function UserStoriesList() {
         setProjects(projs)
 
         const results: StoryWithMeta[] = []
+        const allMods: Module[] = []
         for (const p of projs) {
           const [stories, tcs, mods] = await Promise.all([
             getUserStories(p.id),
             getTestCases(p.id),
             getModules(p.id),
           ])
+          allMods.push(...mods)
           stories.forEach((story) => {
             results.push({
               story,
@@ -88,6 +95,7 @@ export function UserStoriesList() {
           })
         }
         setItems(results)
+        setAllModules(allMods)
       } catch {
         toast.error('Error al cargar las historias')
       } finally {
@@ -96,6 +104,14 @@ export function UserStoriesList() {
     }
     load()
   }, [])
+
+  const visibleModules = useMemo(() => {
+    if (projectFilter === 'all') return allModules
+    return allModules.filter((m) => {
+      const proj = projects.find((p) => p.id === projectFilter)
+      return proj && items.some((i) => i.story.projectId === proj.id && i.story.moduleId === m.id)
+    })
+  }, [allModules, projectFilter, projects, items])
 
   const filtered = useMemo(() => {
     return items.filter(({ story }) => {
@@ -107,9 +123,19 @@ export function UserStoriesList() {
       const matchesStatus = statusFilter === 'all' || story.status === statusFilter
       const matchesPriority = priorityFilter === 'all' || story.priority === priorityFilter
       const matchesProject = projectFilter === 'all' || story.projectId === projectFilter
-      return matchesSearch && matchesStatus && matchesPriority && matchesProject
+      const matchesModule = moduleFilter === 'all'
+        ? true
+        : moduleFilter === 'none'
+          ? !story.moduleId
+          : story.moduleId === moduleFilter
+      const matchesAssigned = assignedFilter === 'all'
+        ? true
+        : assignedFilter === 'me'
+          ? story.assignedTo === sesion?.id
+          : story.assignedTo !== null
+      return matchesSearch && matchesStatus && matchesPriority && matchesProject && matchesModule && matchesAssigned
     })
-  }, [items, search, statusFilter, priorityFilter, projectFilter])
+  }, [items, search, statusFilter, priorityFilter, projectFilter, moduleFilter, assignedFilter, sesion])
 
   if (isLoading) {
     return (
@@ -184,6 +210,35 @@ export function UserStoriesList() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={moduleFilter} onValueChange={(v) => setModuleFilter(v)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Módulo" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los módulos</SelectItem>
+            <SelectItem value="none">Sin módulo</SelectItem>
+            {visibleModules.map((m) => (
+              <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={assignedFilter} onValueChange={setAssignedFilter}>
+          <SelectTrigger className="w-[150px]">
+            <SelectValue placeholder="Asignación" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas</SelectItem>
+            <SelectItem value="me">
+              <span className="flex items-center gap-1.5">
+                <UserCheck className="size-3.5" />
+                Asignadas a mí
+              </span>
+            </SelectItem>
+            <SelectItem value="assigned">Con asignación</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {filtered.length === 0 ? (
@@ -192,11 +247,11 @@ export function UserStoriesList() {
             <BookOpen className="size-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold">No hay historias</h3>
             <p className="text-muted-foreground text-center max-w-sm">
-              {search || statusFilter !== 'all' || priorityFilter !== 'all' || projectFilter !== 'all'
+              {search || statusFilter !== 'all' || priorityFilter !== 'all' || projectFilter !== 'all' || moduleFilter !== 'all' || assignedFilter !== 'all'
                 ? 'No se encontraron historias con los filtros seleccionados'
                 : 'Crea tu primera historia de usuario para comenzar'}
             </p>
-            {!search && statusFilter === 'all' && priorityFilter === 'all' && projectFilter === 'all' && (
+            {!search && statusFilter === 'all' && priorityFilter === 'all' && projectFilter === 'all' && moduleFilter === 'all' && assignedFilter === 'all' && (
               <Button className="mt-4" asChild>
                 <Link href="/historias/nueva">
                   <Plus className="mr-2 size-4" />
