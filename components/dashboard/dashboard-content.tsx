@@ -142,7 +142,8 @@ export function DashboardContent() {
         ])
         setAllUserStories(stories)
         setAllTestCases(tcs)
-      } catch {
+      } catch (err) {
+        console.error('[Dashboard] Error al cargar:', err)
         toast.error('Error al cargar el dashboard')
       } finally {
         setIsLoading(false)

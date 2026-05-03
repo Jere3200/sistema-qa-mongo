@@ -103,33 +103,41 @@ ALTER TABLE public.test_cases       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.chat_messages    ENABLE ROW LEVEL SECURITY;
 
 
--- ── FASE 3: POLÍTICAS RLS (todas las tablas ya existen) ──────
+-- ── FASE 3: FUNCIÓN HELPER (evita recursión infinita en RLS) ─
+
+-- SECURITY DEFINER: bypasea RLS al consultar project_members
+-- Esto rompe el ciclo projects → project_members → projects
+CREATE OR REPLACE FUNCTION public.is_project_member(p_project_id UUID)
+RETURNS BOOLEAN LANGUAGE sql SECURITY DEFINER STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.project_members
+    WHERE project_id = p_project_id AND user_id = auth.uid()
+  );
+$$;
+
+
+-- ── FASE 4: POLÍTICAS RLS ─────────────────────────────────────
 
 -- profiles
 CREATE POLICY "profiles_select" ON public.profiles FOR SELECT TO authenticated USING (true);
 CREATE POLICY "profiles_update" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
 
--- projects (referencia project_members — tabla ya creada)
+-- projects: usa is_project_member() en vez de subquery directa (evita recursión)
 CREATE POLICY "projects_select" ON public.projects FOR SELECT TO authenticated
-  USING (owner_id = auth.uid() OR id IN (
-    SELECT project_id FROM public.project_members WHERE user_id = auth.uid()
-  ));
+  USING (owner_id = auth.uid() OR public.is_project_member(id));
 CREATE POLICY "projects_insert" ON public.projects FOR INSERT TO authenticated
   WITH CHECK (owner_id = auth.uid());
 CREATE POLICY "projects_update" ON public.projects FOR UPDATE TO authenticated
-  USING (owner_id = auth.uid() OR id IN (
-    SELECT project_id FROM public.project_members WHERE user_id = auth.uid() AND role IN ('owner','editor')
-  ));
+  USING (owner_id = auth.uid());
 CREATE POLICY "projects_delete" ON public.projects FOR DELETE TO authenticated
   USING (owner_id = auth.uid());
 
--- project_members
+-- project_members: sin auto-referencia (evita recursión)
 CREATE POLICY "members_select" ON public.project_members FOR SELECT TO authenticated
-  USING (project_id IN (
-    SELECT id FROM public.projects WHERE owner_id = auth.uid()
-    UNION
-    SELECT project_id FROM public.project_members WHERE user_id = auth.uid()
-  ));
+  USING (
+    user_id = auth.uid()
+    OR project_id IN (SELECT id FROM public.projects WHERE owner_id = auth.uid())
+  );
 CREATE POLICY "members_insert" ON public.project_members FOR INSERT TO authenticated
   WITH CHECK (
     project_id IN (SELECT id FROM public.projects WHERE owner_id = auth.uid())
@@ -140,45 +148,39 @@ CREATE POLICY "members_delete" ON public.project_members FOR DELETE TO authentic
 
 -- modules
 CREATE POLICY "modules_all" ON public.modules FOR ALL TO authenticated
-  USING (project_id IN (
-    SELECT id FROM public.projects WHERE owner_id = auth.uid()
-    UNION
-    SELECT project_id FROM public.project_members WHERE user_id = auth.uid()
-  ));
+  USING (
+    project_id IN (SELECT id FROM public.projects WHERE owner_id = auth.uid())
+    OR public.is_project_member(project_id)
+  );
 
 -- user_stories
 CREATE POLICY "stories_all" ON public.user_stories FOR ALL TO authenticated
-  USING (project_id IN (
-    SELECT id FROM public.projects WHERE owner_id = auth.uid()
-    UNION
-    SELECT project_id FROM public.project_members WHERE user_id = auth.uid()
-  ));
+  USING (
+    project_id IN (SELECT id FROM public.projects WHERE owner_id = auth.uid())
+    OR public.is_project_member(project_id)
+  );
 
 -- acceptance_criteria
 CREATE POLICY "criteria_all" ON public.acceptance_criteria FOR ALL TO authenticated
   USING (user_story_id IN (
-    SELECT id FROM public.user_stories WHERE project_id IN (
-      SELECT id FROM public.projects WHERE owner_id = auth.uid()
-      UNION
-      SELECT project_id FROM public.project_members WHERE user_id = auth.uid()
-    )
+    SELECT id FROM public.user_stories
+    WHERE project_id IN (SELECT id FROM public.projects WHERE owner_id = auth.uid())
+       OR public.is_project_member(project_id)
   ));
 
 -- test_cases
 CREATE POLICY "test_cases_all" ON public.test_cases FOR ALL TO authenticated
-  USING (project_id IN (
-    SELECT id FROM public.projects WHERE owner_id = auth.uid()
-    UNION
-    SELECT project_id FROM public.project_members WHERE user_id = auth.uid()
-  ));
+  USING (
+    project_id IN (SELECT id FROM public.projects WHERE owner_id = auth.uid())
+    OR public.is_project_member(project_id)
+  );
 
 -- chat_messages
 CREATE POLICY "chat_all" ON public.chat_messages FOR ALL TO authenticated
-  USING (project_id IN (
-    SELECT id FROM public.projects WHERE owner_id = auth.uid()
-    UNION
-    SELECT project_id FROM public.project_members WHERE user_id = auth.uid()
-  ));
+  USING (
+    project_id IN (SELECT id FROM public.projects WHERE owner_id = auth.uid())
+    OR public.is_project_member(project_id)
+  );
 
 
 -- ── FASE 4: FUNCIONES Y TRIGGERS ────────────────────────────

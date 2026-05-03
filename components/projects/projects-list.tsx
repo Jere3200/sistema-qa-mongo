@@ -13,6 +13,7 @@ import {
   TestTube2,
   FolderKanban,
   RotateCcw,
+  Users,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -41,6 +42,7 @@ import { toast } from 'sonner'
 import { getProjects, deleteProject, updateProject } from '@/lib/store'
 import type { Project, ProjectStatus } from '@/lib/types'
 import { ProjectDialog } from './project-dialog'
+import { InviteMemberDialog } from '@/components/collaboration/invite-member-dialog'
 
 const statusConfig: Record<ProjectStatus, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
   active: { label: 'Activo', variant: 'default' },
@@ -57,6 +59,7 @@ export function ProjectsList() {
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null)
+  const [inviteProject, setInviteProject] = useState<Project | null>(null)
 
   const loadProjects = async () => {
     try {
@@ -192,6 +195,7 @@ export function ProjectsList() {
               onArchive={() => handleArchive(project)}
               onRestore={() => handleRestore(project)}
               onDelete={() => { setProjectToDelete(project); setDeleteDialogOpen(true) }}
+              onInvite={() => setInviteProject(project)}
             />
           ))}
         </div>
@@ -202,6 +206,12 @@ export function ProjectsList() {
         onOpenChange={setDialogOpen}
         project={editingProject}
         onSuccess={loadProjects}
+      />
+
+      <InviteMemberDialog
+        open={!!inviteProject}
+        onOpenChange={(v) => { if (!v) setInviteProject(null) }}
+        projectId={inviteProject?.id ?? ''}
       />
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -234,14 +244,15 @@ interface ProjectCardProps {
   onArchive: () => void
   onRestore: () => void
   onDelete: () => void
+  onInvite: () => void
 }
 
-function ProjectCard({ project, onEdit, onArchive, onRestore, onDelete }: ProjectCardProps) {
+function ProjectCard({ project, onEdit, onArchive, onRestore, onDelete, onInvite }: ProjectCardProps) {
   return (
-    <Card className="group relative">
+    <Card className="group relative flex flex-col">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <CardTitle className="text-lg">
               <Link href={`/proyectos/${project.id}`} className="hover:underline">
                 {project.name}
@@ -253,7 +264,7 @@ function ProjectCard({ project, onEdit, onArchive, onRestore, onDelete }: Projec
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8">
+              <Button variant="ghost" size="icon" className="size-8 shrink-0">
                 <MoreHorizontal className="size-4" />
                 <span className="sr-only">Opciones</span>
               </Button>
@@ -286,15 +297,26 @@ function ProjectCard({ project, onEdit, onArchive, onRestore, onDelete }: Projec
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{project.description}</p>
-        <div className="mt-4 pt-4 border-t text-xs text-muted-foreground">
-          Actualizado{' '}
-          {project.updatedAt.toLocaleDateString('es-ES', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-          })}
+      <CardContent className="flex flex-col flex-1">
+        <p className="text-sm text-muted-foreground line-clamp-2">{project.description}</p>
+        <div className="mt-auto pt-4 border-t flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Actualizado{' '}
+            {project.updatedAt.toLocaleDateString('es-ES', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs gap-1.5"
+            onClick={(e) => { e.preventDefault(); onInvite() }}
+          >
+            <Users className="size-3.5" />
+            Colaboradores
+          </Button>
         </div>
       </CardContent>
     </Card>

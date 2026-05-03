@@ -4,11 +4,19 @@ import type { DashboardStats, UserStoryStatus, TestCaseStatus } from '@/lib/type
 export async function getDashboardStats(): Promise<DashboardStats> {
   const supabase = createClient()
 
-  const [{ data: stories }, { data: testCases }, { count: totalProjects }] = await Promise.all([
+  const [storiesRes, testCasesRes, projectsRes] = await Promise.all([
     supabase.from('user_stories').select('status, project_id'),
     supabase.from('test_cases').select('status, user_story_id'),
     supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'active'),
   ])
+
+  if (storiesRes.error) console.error('[stats] user_stories:', storiesRes.error.message)
+  if (testCasesRes.error) console.error('[stats] test_cases:', testCasesRes.error.message)
+  if (projectsRes.error) console.error('[stats] projects:', projectsRes.error.message)
+
+  const stories = storiesRes.data
+  const testCases = testCasesRes.data
+  const totalProjects = projectsRes.count
 
   const userStoriesByStatus: Record<UserStoryStatus, number> = {
     backlog: 0,
