@@ -97,7 +97,7 @@ export function ProjectDetail({ projectId }: ProjectDetailProps) {
         getModules(projectId),
         getUserStories(projectId),
         getTestCases(projectId),
-        getProjectMembers(projectId),
+        getProjectMembers(projectId).catch(() => []),
       ])
       if (!p) return
       setProject(p)
