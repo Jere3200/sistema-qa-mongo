@@ -84,20 +84,34 @@ export interface ProjectMember {
 
 export async function getProjectMembers(projectId: string): Promise<ProjectMember[]> {
   const supabase = createClient()
-  const { data, error } = await supabase
+
+  const { data: members, error } = await supabase
     .from('project_members')
-    .select('*, profiles(nombre, email)')
+    .select('id, project_id, user_id, role, joined_at')
     .eq('project_id', projectId)
   if (error) throw error
-  return (data || []).map((row) => ({
-    id: row.id,
-    projectId: row.project_id,
-    userId: row.user_id,
-    role: row.role as ProjectMember['role'],
-    nombre: (row.profiles as { nombre: string; email: string })?.nombre || '',
-    email: (row.profiles as { nombre: string; email: string })?.email || '',
-    joinedAt: new Date(row.joined_at),
-  }))
+  if (!members || members.length === 0) return []
+
+  const userIds = members.map((m) => m.user_id)
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, nombre, email')
+    .in('id', userIds)
+
+  const profileMap = new Map((profiles || []).map((p) => [p.id, p]))
+
+  return members.map((row) => {
+    const profile = profileMap.get(row.user_id)
+    return {
+      id: row.id,
+      projectId: row.project_id,
+      userId: row.user_id,
+      role: row.role as ProjectMember['role'],
+      nombre: profile?.nombre || '',
+      email: profile?.email || '',
+      joinedAt: new Date(row.joined_at),
+    }
+  })
 }
 
 export async function inviteMember(projectId: string, email: string): Promise<void> {
