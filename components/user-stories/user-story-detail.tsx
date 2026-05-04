@@ -108,7 +108,7 @@ export function UserStoryDetail({ storyId }: UserStoryDetailProps) {
         getProject(s.projectId),
         getModules(s.projectId),
         getTestCasesByUserStory(storyId),
-        getStatusHistory(storyId),
+        getStatusHistory(storyId).catch(() => []),
       ])
       setStory(s)
       setProject(p || null)

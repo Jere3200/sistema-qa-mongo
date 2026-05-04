@@ -152,6 +152,7 @@ export function UserStoryForm({ storyId }: UserStoryFormProps) {
           soThat: soThat.trim(),
           status,
           priority,
+          assignedTo: null,
         })
         await replaceAcceptanceCriteria(newStory.id, validCriteria)
         toast.success('Historia creada')

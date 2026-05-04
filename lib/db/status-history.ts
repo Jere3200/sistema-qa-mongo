@@ -14,17 +14,26 @@ export async function getStatusHistory(storyId: string): Promise<StatusHistoryEn
   const supabase = createClient()
   const { data, error } = await supabase
     .from('story_status_history')
-    .select('*, profiles(nombre)')
+    .select('id, story_id, old_status, new_status, changed_by, changed_at')
     .eq('story_id', storyId)
     .order('changed_at', { ascending: true })
   if (error) throw error
-  return (data || []).map((row) => ({
+  if (!data || data.length === 0) return []
+
+  const userIds = [...new Set(data.map((r) => r.changed_by))]
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, nombre')
+    .in('id', userIds)
+  const profileMap = new Map((profiles || []).map((p) => [p.id, p.nombre as string]))
+
+  return data.map((row) => ({
     id: row.id as string,
     storyId: row.story_id as string,
     oldStatus: row.old_status as string,
     newStatus: row.new_status as string,
     changedBy: row.changed_by as string,
-    authorName: (row.profiles as { nombre: string } | null)?.nombre ?? 'Usuario',
+    authorName: profileMap.get(row.changed_by as string) ?? 'Usuario',
     changedAt: new Date(row.changed_at as string),
   }))
 }

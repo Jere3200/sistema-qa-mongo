@@ -193,7 +193,7 @@ export function GlobalChatPanel() {
                   )}
                   {!isSearching && listItems.map((item) => {
                     const isConv = !showSearch && 'lastMessage' in item
-                    const id = item.id
+                    const id = isConv ? (item as DMConversation).userId : (item as UserProfile).id
                     const nombre = item.nombre
                     const sub = isConv ? (item as DMConversation).lastMessage : (item as UserProfile).email
                     return (

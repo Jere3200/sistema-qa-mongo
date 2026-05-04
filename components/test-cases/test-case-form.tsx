@@ -141,7 +141,7 @@ export function TestCaseForm({ testCaseId }: TestCaseFormProps) {
           title: title.trim(), preconditions: preconditions.trim(),
           given: given.trim(), when: when.trim(), then: then.trim(),
           status, priority, notes: notes.trim(),
-          executedAt: null, executedBy: null,
+          executedAt: null, executedBy: null, assignedTo: null,
         })
         toast.success('Caso de prueba creado')
         router.push(`/casos-prueba/${newTC.id}`)

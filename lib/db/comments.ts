@@ -14,7 +14,7 @@ export async function getComments(params: { userStoryId?: string; testCaseId?: s
   const supabase = createClient()
   let query = supabase
     .from('comments')
-    .select('*, profiles(nombre)')
+    .select('id, user_story_id, test_case_id, user_id, content, created_at')
     .order('created_at', { ascending: true })
 
   if (params.userStoryId) query = query.eq('user_story_id', params.userStoryId)
@@ -22,12 +22,21 @@ export async function getComments(params: { userStoryId?: string; testCaseId?: s
 
   const { data, error } = await query
   if (error) throw error
-  return (data || []).map((row) => ({
+  if (!data || data.length === 0) return []
+
+  const userIds = [...new Set(data.map((r) => r.user_id as string))]
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, nombre')
+    .in('id', userIds)
+  const profileMap = new Map((profiles || []).map((p) => [p.id, p.nombre as string]))
+
+  return data.map((row) => ({
     id: row.id as string,
     userStoryId: (row.user_story_id as string) || null,
     testCaseId: (row.test_case_id as string) || null,
     userId: row.user_id as string,
-    authorName: (row.profiles as { nombre: string } | null)?.nombre ?? 'Usuario',
+    authorName: profileMap.get(row.user_id as string) ?? 'Usuario',
     content: row.content as string,
     createdAt: new Date(row.created_at as string),
   }))
@@ -50,15 +59,22 @@ export async function addComment(params: {
       user_id: user.id,
       content: params.content.trim(),
     })
-    .select('*, profiles(nombre)')
+    .select('id, user_story_id, test_case_id, user_id, content, created_at')
     .single()
   if (error) throw error
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('nombre')
+    .eq('id', user.id)
+    .single()
+
   return {
     id: data.id as string,
     userStoryId: (data.user_story_id as string) || null,
     testCaseId: (data.test_case_id as string) || null,
     userId: data.user_id as string,
-    authorName: (data.profiles as { nombre: string } | null)?.nombre ?? 'Usuario',
+    authorName: (profile?.nombre as string) ?? 'Usuario',
     content: data.content as string,
     createdAt: new Date(data.created_at as string),
   }
