@@ -298,6 +298,7 @@ function HeroSection() {
               key={item}
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
+              whileHover={{ x: 3, transition: SPRING }}
               transition={{ delay: 0.42 + i * 0.06, ease: EASE, duration: 0.4 }}
               className="flex items-center gap-2 text-[13.5px] text-gray-600"
             >
@@ -546,14 +547,13 @@ const TOOLS = [
 ]
 
 function ToolsSection() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
   return (
-    <section ref={ref} className="border-b border-gray-200 px-8 py-[120px]" id="producto">
+    <section className="border-b border-gray-200 px-8 py-[120px]" id="producto">
       <div className="mx-auto max-w-[1240px]">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           transition={{ duration: 0.5, ease: EASE }}
           className="mb-16 max-w-[720px]"
         >
@@ -573,8 +573,9 @@ function ToolsSection() {
             <motion.article
               key={id}
               initial={{ opacity: 0, y: 40, scale: 0.96 }}
-              animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-              transition={{ duration: 0.55, delay: 0.1 + i * 0.1, ease: EASE }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, amount: 0.1 }}
+              transition={{ duration: 0.55, delay: i * 0.1, ease: EASE }}
               whileHover={{ y: -6, boxShadow: '0 20px 48px -16px rgba(13,31,26,0.16)', borderColor: '#cbd5d0', transition: { ...SPRING } }}
               className="grid cursor-pointer grid-rows-[1fr_auto] overflow-hidden rounded-2xl border border-gray-200 bg-white"
             >
@@ -600,7 +601,10 @@ function ToolsSection() {
 
 function StepFormPanel() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3.5">
+    <motion.div
+      whileHover={{ y: -3, boxShadow: '0 12px 32px -12px rgba(13,31,26,0.14)', transition: SPRING }}
+      className="rounded-xl border border-gray-200 bg-white p-3.5"
+    >
       <div className="mb-2.5 font-mono text-[11px] uppercase tracking-[0.5px] text-gray-400">Nuevo Proyecto</div>
       <div className="mb-1 text-[11px] text-gray-400">Nombre</div>
       <div className="mb-2.5 rounded-md border border-gray-200 px-2.5 py-2 text-[13px] text-gray-900">Sistema de E-commerce</div>
@@ -611,13 +615,16 @@ function StepFormPanel() {
         ))}
         <span className="rounded border border-teal-200 bg-teal-50 px-2 py-0.5 text-[11px] text-teal-700">+ agregar</span>
       </div>
-    </div>
+    </motion.div>
   )
 }
 
 function StepStoryPanel() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3.5">
+    <motion.div
+      whileHover={{ y: -3, boxShadow: '0 12px 32px -12px rgba(13,31,26,0.14)', transition: SPRING }}
+      className="rounded-xl border border-gray-200 bg-white p-3.5"
+    >
       <div className="mb-2.5 flex items-center justify-between">
         <span className="font-mono text-[11px] text-gray-400">US-001</span>
         <span className="rounded border border-violet-200 bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">Historia</span>
@@ -641,19 +648,22 @@ function StepStoryPanel() {
           <span className="shrink-0 text-teal-600">✓</span>{c}
         </motion.div>
       ))}
-    </div>
+    </motion.div>
   )
 }
 
 function StepMatrixPanel() {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-3.5">
+    <motion.div
+      whileHover={{ y: -3, boxShadow: '0 12px 32px -12px rgba(13,31,26,0.14)', transition: SPRING }}
+      className="rounded-xl border border-gray-200 bg-white p-3.5"
+    >
       <div className="mb-2.5 flex items-center justify-between">
         <span className="font-mono text-[11px] uppercase tracking-[0.5px] text-gray-400">Matriz</span>
         <span className="rounded border border-teal-200 bg-teal-50 px-2 py-0.5 font-mono text-[11px] font-semibold text-teal-700">87%</span>
       </div>
       <MiniMatrix />
-    </div>
+    </motion.div>
   )
 }
 
@@ -664,14 +674,13 @@ const STEPS = [
 ]
 
 function HowItWorksSection() {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-80px' })
   return (
-    <section ref={ref} className="border-b border-gray-200 bg-gray-50 px-8 py-[120px]" id="como-funciona">
+    <section className="border-b border-gray-200 bg-gray-50 px-8 py-[120px]" id="como-funciona">
       <div className="mx-auto max-w-[1240px]">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.1 }}
           transition={{ duration: 0.5, ease: EASE }}
           className="mb-16 max-w-[720px]"
         >
@@ -687,7 +696,8 @@ function HowItWorksSection() {
           {/* Dashed line */}
           <motion.div
             initial={{ scaleX: 0, opacity: 0 }}
-            animate={isInView ? { scaleX: 1, opacity: 1 } : {}}
+            whileInView={{ scaleX: 1, opacity: 1 }}
+            viewport={{ once: true, amount: 0.1 }}
             transition={{ duration: 0.8, delay: 0.5, ease: EASE }}
             style={{
               originX: 0,
@@ -707,7 +717,8 @@ function HowItWorksSection() {
               <div className="relative mb-6">
                 <motion.div
                   initial={{ scale: 0.5, opacity: 0 }}
-                  animate={isInView ? { scale: 1, opacity: 1 } : {}}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  viewport={{ once: true, amount: 0.5 }}
                   transition={{ ...SPRING, delay: i * 0.15 + 0.2 }}
                   className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full border-2 border-teal-600 bg-white font-mono text-base font-semibold text-teal-600"
                   style={{ boxShadow: '0 0 0 8px #f8faf9, 0 0 0 9px rgba(191,229,214,0.33)' }}
@@ -717,7 +728,8 @@ function HowItWorksSection() {
                 {/* Pulse ring that fades after appearing */}
                 <motion.div
                   initial={{ scale: 0.5, opacity: 0 }}
-                  animate={isInView ? { scale: [1, 1.6, 1.6], opacity: [0.6, 0, 0] } : {}}
+                  whileInView={{ scale: [1, 1.6, 1.6], opacity: [0.6, 0, 0] }}
+                  viewport={{ once: true, amount: 0.5 }}
                   transition={{ duration: 0.8, delay: i * 0.15 + 0.4 }}
                   className="absolute left-0 top-0 h-14 w-14 rounded-full border-2 border-teal-400"
                 />
@@ -725,7 +737,8 @@ function HowItWorksSection() {
 
               <motion.div
                 initial={{ opacity: 0, y: 20, filter: 'blur(4px)' }}
-                animate={isInView ? { opacity: 1, y: 0, filter: 'blur(0px)' } : {}}
+                whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                viewport={{ once: true, amount: 0.1 }}
                 transition={{ duration: 0.5, delay: i * 0.15 + 0.1, ease: EASE }}
               >
                 <h3 className="mb-2 text-[22px] font-semibold tracking-[-0.5px] text-gray-900">{title}</h3>
@@ -779,7 +792,8 @@ function TheRuleSection() {
                   key={item.title}
                   initial={{ opacity: 0, x: -16 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, margin: '-60px' }}
+                  whileHover={{ x: 4, transition: SPRING }}
+                  viewport={{ once: true, amount: 0.1 }}
                   transition={{ delay: i * 0.1, ease: EASE, duration: 0.4 }}
                   className="flex items-start gap-3"
                 >
