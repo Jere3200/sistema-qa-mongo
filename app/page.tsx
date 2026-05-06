@@ -134,11 +134,8 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/85 backdrop-blur-lg">
       <div className="mx-auto flex h-[56px] max-w-[1240px] items-center gap-9 px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="RQA-Tracer">
-          <Image src="/logo.png" alt="RQA·Tracer logo" width={36} height={36} priority />
-          <span className="text-base font-semibold tracking-[-0.3px] text-gray-900">
-            RQA<span className="text-teal-600">·</span>Tracer
-          </span>
+        <Link href="/" className="flex shrink-0 items-center" aria-label="RQA-Tracer">
+          <Image src="/logo.png" alt="RQA·Tracer" width={120} height={120} priority className="h-10 w-auto" />
         </Link>
 
         <nav className="ml-3 hidden items-center gap-6 md:flex">
@@ -978,11 +975,8 @@ function Footer() {
   return (
     <footer className="bg-white px-8 py-10">
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2" aria-label="RQA-Tracer">
-          <Image src="/logo.png" alt="RQA·Tracer logo" width={36} height={36} />
-          <span className="text-base font-semibold tracking-[-0.3px] text-gray-900">
-            RQA<span className="text-teal-600">·</span>Tracer
-          </span>
+        <Link href="/" className="flex items-center" aria-label="RQA-Tracer">
+          <Image src="/logo.png" alt="RQA·Tracer" width={120} height={120} className="h-10 w-auto" />
         </Link>
         <div className="font-mono text-[12.5px] text-gray-400">Proyecto académico · v1.0 · 2026</div>
         <nav className="flex gap-5 text-[12.5px] text-gray-400">
