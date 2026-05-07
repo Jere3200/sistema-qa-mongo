@@ -10,6 +10,7 @@ interface AuthContextoTipo {
   iniciarSesion: (email: string, password: string) => Promise<boolean>
   registrar: (nombre: string, email: string, password: string) => Promise<{ confirmacionRequerida: boolean }>
   cerrarSesion: () => Promise<void>
+  solicitarResetPassword: (email: string) => Promise<void>
 }
 
 const AuthContexto = createContext<AuthContextoTipo | null>(null)
@@ -75,8 +76,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSesion(null)
   }
 
+  async function solicitarResetPassword(email: string): Promise<void> {
+    const supabase = createClient()
+    const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.toLowerCase().trim(),
+      { redirectTo }
+    )
+    if (error) throw new Error(error.message)
+  }
+
   return (
-    <AuthContexto.Provider value={{ sesion, cargando, iniciarSesion, registrar, cerrarSesion }}>
+    <AuthContexto.Provider value={{ sesion, cargando, iniciarSesion, registrar, cerrarSesion, solicitarResetPassword }}>
       {children}
     </AuthContexto.Provider>
   )

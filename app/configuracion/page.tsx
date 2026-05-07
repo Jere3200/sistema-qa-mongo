@@ -2,14 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, User, Shield, Moon, Sun, Monitor } from 'lucide-react'
+import { LogOut, User, Shield, Moon, Sun, Monitor, Trash2 } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { toast } from 'sonner'
 
 import { AppHeader } from '@/components/app-header'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -20,20 +20,38 @@ import {
 } from '@/components/ui/dialog'
 import { useAuth } from '@/components/auth/auth-provider'
 import { getAvatarColor, getAvatarInitial } from '@/lib/utils/avatar-color'
+import { deleteAccount } from '@/lib/actions/delete-account'
 
 export default function ConfiguracionPage() {
   const { sesion, cerrarSesion } = useAuth()
   const { theme, setTheme } = useTheme()
   const router = useRouter()
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
 
-  const handleLogout = () => {
-    cerrarSesion()
+  const handleLogout = async () => {
+    await cerrarSesion()
     toast.success('Sesión cerrada')
     router.push('/')
   }
 
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true)
+    const { error } = await deleteAccount()
+    if (error) {
+      toast.error(error)
+      setIsDeleting(false)
+      return
+    }
+    await cerrarSesion()
+    toast.success('Cuenta eliminada')
+    router.push('/')
+  }
+
   const avatarColor = sesion ? getAvatarColor(sesion.nombre) : { bg: 'bg-teal-500', text: 'text-white' }
+  const deleteConfirmValid = deleteConfirmText === 'ELIMINAR'
 
   return (
     <>
@@ -108,7 +126,7 @@ export default function ConfiguracionPage() {
                 Zona de peligro
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Cerrar sesión</p>
@@ -119,13 +137,30 @@ export default function ConfiguracionPage() {
                   Cerrar sesión
                 </Button>
               </div>
+
+              <div className="border-t pt-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Eliminar cuenta</p>
+                  <p className="text-xs text-muted-foreground">
+                    Elimina permanentemente tu cuenta y todos tus datos
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => { setDeleteConfirmText(''); setDeleteDialogOpen(true) }}
+                >
+                  <Trash2 className="mr-2 size-4" />
+                  Eliminar cuenta
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
       </main>
 
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>¿Cerrar sesión?</DialogTitle>
             <DialogDescription>
@@ -137,6 +172,42 @@ export default function ConfiguracionPage() {
             <Button variant="destructive" onClick={handleLogout}>
               <LogOut className="mr-2 size-4" />
               Cerrar sesión
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle>Eliminar cuenta</DialogTitle>
+            <DialogDescription>
+              Esta acción es <strong>irreversible</strong>. Se eliminarán permanentemente tu cuenta
+              y todos tus datos asociados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2 space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Para confirmar, escribí <strong className="text-foreground">ELIMINAR</strong> en el campo de abajo:
+            </p>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="ELIMINAR"
+              className="font-mono"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAccount}
+              disabled={!deleteConfirmValid || isDeleting}
+            >
+              <Trash2 className="mr-2 size-4" />
+              {isDeleting ? 'Eliminando...' : 'Eliminar cuenta'}
             </Button>
           </DialogFooter>
         </DialogContent>

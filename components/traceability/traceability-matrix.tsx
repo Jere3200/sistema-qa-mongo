@@ -162,6 +162,7 @@ export function TraceabilityMatrix() {
     link.href = URL.createObjectURL(blob)
     link.download = `trazabilidad-${project?.name || 'proyecto'}-${new Date().toISOString().split('T')[0]}.csv`
     link.click()
+    URL.revokeObjectURL(link.href)
     toast.success('CSV exportado')
   }
 

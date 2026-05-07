@@ -87,7 +87,15 @@ function FormularioLogin() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 text-sm font-medium">Contraseña</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-gray-700 text-sm font-medium">Contraseña</FormLabel>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-teal-600 hover:text-teal-700 font-medium transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <FormControl>
                 <Input
                   type="password"

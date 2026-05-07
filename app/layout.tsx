@@ -21,7 +21,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'RQA-Tracer | Trazabilidad de Requisitos y QA',
   description: 'Sistema de trazabilidad entre historias de usuario, criterios de aceptación y casos de prueba',
-  generator: 'v0.app',
   icons: {
     icon: [
       { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },

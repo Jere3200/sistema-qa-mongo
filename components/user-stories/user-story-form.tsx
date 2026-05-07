@@ -102,7 +102,12 @@ export function UserStoryForm({ storyId }: UserStoryFormProps) {
 
   useEffect(() => {
     if (!projectId) { setModules([]); return }
-    getModules(projectId).then(setModules).catch(() => setModules([]))
+    getModules(projectId)
+      .then(setModules)
+      .catch(() => {
+        setModules([])
+        toast.error('Error al cargar los módulos')
+      })
   }, [projectId])
 
   const addCriterion = () => setCriteria([...criteria, ''])

@@ -105,7 +105,7 @@ export function TestCaseForm({ testCaseId }: TestCaseFormProps) {
       }
     }
     init()
-  }, [testCaseId])
+  }, [testCaseId, defaultUserStoryId])
 
   useEffect(() => {
     setProjectUserStories(allUserStories.filter((us) => us.projectId === projectId))
