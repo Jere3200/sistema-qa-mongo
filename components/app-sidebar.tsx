@@ -84,7 +84,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
+              <Link href="/dashboard">
                 <Image src="/logo.png" alt="RQA·Tracer" width={32} height={32} className="rounded-lg" />
                 <div className="flex flex-col gap-0.5 leading-none">
                   <span className="font-semibold">RQA-Tracer</span>

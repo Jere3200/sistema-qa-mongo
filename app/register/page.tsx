@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { TestTube2, Loader2, ArrowLeft, BookOpen, GitCompare, FlaskConical } from 'lucide-react'
+import Image from 'next/image'
+import { Loader2, ArrowLeft, BookOpen, GitCompare, FlaskConical } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Button } from '@/components/ui/button'
@@ -46,6 +47,7 @@ export default function RegisterPage() {
   const router = useRouter()
   const [errorGeneral, setErrorGeneral] = useState('')
   const [cargando, setCargando] = useState(false)
+  const [emailEnviado, setEmailEnviado] = useState('')
 
   const form = useForm<DatosRegistro>({
     resolver: zodResolver(esquemaRegistro),
@@ -56,8 +58,12 @@ export default function RegisterPage() {
     setCargando(true)
     setErrorGeneral('')
     try {
-      await registrar(datos.nombre, datos.email, datos.password)
-      router.push('/dashboard')
+      const { confirmacionRequerida } = await registrar(datos.nombre, datos.email, datos.password)
+      if (confirmacionRequerida) {
+        setEmailEnviado(datos.email)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (error) {
       setErrorGeneral(
         error instanceof Error ? error.message : 'Ocurrió un error al registrarse.'
@@ -77,11 +83,8 @@ export default function RegisterPage() {
           transition={{ duration: 0.6 }}
           className="max-w-sm text-center"
         >
-          <div className="flex items-center justify-center gap-3 mb-10">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <TestTube2 className="size-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white">RQA-Tracer</span>
+          <div className="flex items-center justify-center mb-10">
+            <Image src="/logo.png" alt="RQA·Tracer" width={160} height={160} className="h-16 w-auto brightness-0 invert" />
           </div>
 
           <h2 className="text-3xl font-bold text-white leading-tight mb-4">
@@ -119,12 +122,30 @@ export default function RegisterPage() {
           className="w-full max-w-sm"
         >
           {/* Logo mobile */}
-          <div className="flex lg:hidden items-center gap-2.5 mb-8">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-teal-600 text-white">
-              <TestTube2 className="size-4" />
-            </div>
-            <span className="font-bold text-gray-900">RQA-Tracer</span>
+          <div className="flex lg:hidden justify-center mb-8">
+            <Image src="/logo.png" alt="RQA·Tracer" width={120} height={120} className="h-10 w-auto" />
           </div>
+
+          {emailEnviado ? (
+            <div className="bg-white rounded-2xl border border-teal-200 shadow-sm p-8 text-center">
+              <div className="flex items-center justify-center size-14 rounded-full bg-teal-50 mx-auto mb-5">
+                <svg className="size-7 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Revisá tu email</h2>
+              <p className="text-sm text-gray-500 mb-1">
+                Enviamos un enlace de confirmación a
+              </p>
+              <p className="text-sm font-semibold text-gray-900 mb-5">{emailEnviado}</p>
+              <p className="text-xs text-gray-400">
+                Una vez que confirmes tu cuenta podés{' '}
+                <Link href="/login" className="text-teal-600 hover:text-teal-700 font-medium">
+                  iniciar sesión
+                </Link>
+              </p>
+            </div>
+          ) : (
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
             <div className="mb-7">
@@ -239,6 +260,7 @@ export default function RegisterPage() {
               </Link>
             </p>
           </div>
+          )}
 
           <div className="mt-5 text-center">
             <Link

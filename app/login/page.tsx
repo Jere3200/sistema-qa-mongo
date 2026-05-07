@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { TestTube2, Loader2, ArrowLeft, BookOpen, GitCompare, FlaskConical } from 'lucide-react'
+import Image from 'next/image'
+import { Loader2, ArrowLeft, BookOpen, GitCompare, FlaskConical } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Button } from '@/components/ui/button'
@@ -132,11 +133,8 @@ export default function LoginPage() {
           transition={{ duration: 0.6 }}
           className="max-w-sm text-center"
         >
-          <div className="flex items-center justify-center gap-3 mb-10">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <TestTube2 className="size-6 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white">RQA-Tracer</span>
+          <div className="flex items-center justify-center mb-10">
+            <Image src="/logo.png" alt="RQA·Tracer" width={160} height={160} className="h-16 w-auto brightness-0 invert" />
           </div>
 
           <h2 className="text-3xl font-bold text-white leading-tight mb-4">
@@ -174,11 +172,8 @@ export default function LoginPage() {
           className="w-full max-w-sm"
         >
           {/* Logo mobile */}
-          <div className="flex lg:hidden items-center gap-2.5 mb-8">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-teal-600 text-white">
-              <TestTube2 className="size-4" />
-            </div>
-            <span className="font-bold text-gray-900">RQA-Tracer</span>
+          <div className="flex lg:hidden justify-center mb-8">
+            <Image src="/logo.png" alt="RQA·Tracer" width={120} height={120} className="h-10 w-auto" />
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">

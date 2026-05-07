@@ -8,7 +8,7 @@ interface AuthContextoTipo {
   sesion: SesionActiva | null
   cargando: boolean
   iniciarSesion: (email: string, password: string) => Promise<boolean>
-  registrar: (nombre: string, email: string, password: string) => Promise<void>
+  registrar: (nombre: string, email: string, password: string) => Promise<{ confirmacionRequerida: boolean }>
   cerrarSesion: () => Promise<void>
 }
 
@@ -58,14 +58,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return !error && !!data.user
   }
 
-  async function registrar(nombre: string, email: string, password: string): Promise<void> {
+  async function registrar(nombre: string, email: string, password: string): Promise<{ confirmacionRequerida: boolean }> {
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.toLowerCase().trim(),
       password,
       options: { data: { nombre: nombre.trim() } },
     })
     if (error) throw new Error(error.message)
+    return { confirmacionRequerida: !data.session }
   }
 
   async function cerrarSesion(): Promise<void> {
