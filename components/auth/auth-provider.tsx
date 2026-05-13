@@ -64,7 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signUp({
       email: email.toLowerCase().trim(),
       password,
-      options: { data: { nombre: nombre.trim() } },
+      options: {
+        data: { nombre: nombre.trim() },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+      },
     })
     if (error) throw new Error(error.message)
     return { confirmacionRequerida: !data.session }

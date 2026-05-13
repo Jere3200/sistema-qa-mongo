@@ -33,14 +33,19 @@ export async function getMessages(projectId: string): Promise<ChatMessage[]> {
   return (data || []).map(mapMessage)
 }
 
+const MAX_MESSAGE_LENGTH = 2000
+
 export async function sendMessage(projectId: string, content: string): Promise<ChatMessage> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
 
+  const sanitized = content.trim().slice(0, MAX_MESSAGE_LENGTH)
+  if (!sanitized) throw new Error('El mensaje no puede estar vacío')
+
   const { data: row, error } = await supabase
     .from('chat_messages')
-    .insert({ project_id: projectId, user_id: user.id, content: content.trim() })
+    .insert({ project_id: projectId, user_id: user.id, content: sanitized })
     .select('*, profiles(nombre)')
     .single()
   if (error) throw error

@@ -38,7 +38,9 @@ export async function middleware(request: NextRequest) {
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    url.searchParams.set('redirigir', pathname)
+    // Solo rutas internas para evitar open redirect
+    const safeRedirect = pathname.startsWith('/') && !pathname.startsWith('//') ? pathname : '/dashboard'
+    url.searchParams.set('redirigir', safeRedirect)
     return NextResponse.redirect(url)
   }
 
