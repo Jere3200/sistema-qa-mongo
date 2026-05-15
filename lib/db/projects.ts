@@ -78,7 +78,6 @@ export interface ProjectMember {
   userId: string
   role: 'owner' | 'editor' | 'viewer'
   nombre: string
-  email: string
   joinedAt: Date
 }
 
@@ -95,7 +94,7 @@ export async function getProjectMembers(projectId: string): Promise<ProjectMembe
   const userIds = members.map((m) => m.user_id)
   const { data: profiles } = await supabase
     .from('profiles')
-    .select('id, nombre, email')
+    .select('id, nombre')
     .in('id', userIds)
 
   const profileMap = new Map((profiles || []).map((p) => [p.id, p]))
@@ -108,7 +107,6 @@ export async function getProjectMembers(projectId: string): Promise<ProjectMembe
       userId: row.user_id,
       role: row.role as ProjectMember['role'],
       nombre: profile?.nombre || '',
-      email: profile?.email || '',
       joinedAt: new Date(row.joined_at),
     }
   })
@@ -125,7 +123,7 @@ export async function inviteMember(projectId: string, email: string): Promise<vo
     .eq('email', email.toLowerCase().trim())
     .single()
   if (profileError || !profile) throw new Error(
-    'No se encontró ningún usuario con ese email. El usuario debe registrarse primero en la app.'
+    'No se pudo procesar la invitación. Verificá que el email sea correcto.'
   )
 
   const { error } = await supabase
@@ -139,6 +137,16 @@ export async function inviteMember(projectId: string, email: string): Promise<vo
 
 export async function removeMember(projectId: string, userId: string): Promise<void> {
   const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('No autenticado')
+
+  const { data: project } = await supabase
+    .from('projects')
+    .select('owner_id')
+    .eq('id', projectId)
+    .single()
+  if (!project || project.owner_id !== user.id) throw new Error('Solo el owner puede eliminar miembros')
+
   const { error } = await supabase
     .from('project_members')
     .delete()

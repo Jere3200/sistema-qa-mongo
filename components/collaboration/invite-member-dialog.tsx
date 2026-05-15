@@ -133,7 +133,7 @@ export function InviteMemberDialog({ open, onOpenChange, projectId }: InviteMemb
                 </div>
                 <div>
                   <p className="text-sm font-medium">{member.nombre}</p>
-                  <p className="text-xs text-muted-foreground">{member.email}</p>
+                  <p className="text-xs text-muted-foreground">{roleLabels[member.role]}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">

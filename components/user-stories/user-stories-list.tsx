@@ -44,10 +44,10 @@ const priorityLabels: Record<UserStoryPriority, string> = {
 }
 
 const priorityColors: Record<UserStoryPriority, string> = {
-  low: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-  medium: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-  high: 'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
-  critical: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300',
+  low: 'bg-gray-100 text-gray-700',
+  medium: 'bg-blue-100 text-blue-700',
+  high: 'bg-amber-100 text-amber-700',
+  critical: 'bg-red-100 text-red-700',
 }
 
 interface StoryWithMeta {

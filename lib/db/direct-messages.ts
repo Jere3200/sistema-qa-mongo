@@ -108,14 +108,19 @@ export async function getDMMessages(otherUserId: string): Promise<DMMessage[]> {
   return (data || []).map(mapMessage)
 }
 
+const MAX_DM_LENGTH = 2000
+
 export async function sendDMMessage(toUserId: string, content: string): Promise<DMMessage> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
 
+  const sanitized = content.trim().slice(0, MAX_DM_LENGTH)
+  if (!sanitized) throw new Error('El mensaje no puede estar vacío')
+
   const { data: row, error } = await supabase
     .from('direct_messages')
-    .insert({ from_user_id: user.id, to_user_id: toUserId, content: content.trim() })
+    .insert({ from_user_id: user.id, to_user_id: toUserId, content: sanitized })
     .select('*, profiles!from_user_id(nombre)')
     .single()
   if (error) throw error

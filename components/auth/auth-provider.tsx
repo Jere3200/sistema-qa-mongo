@@ -21,8 +21,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient()
+    let isMounted = true
 
     supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!isMounted) return
       if (user) {
         setSesion({
           id: user.id,
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
       if (session?.user) {
         setSesion({
           id: session.user.id,
@@ -47,7 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   async function iniciarSesion(email: string, password: string): Promise<boolean> {

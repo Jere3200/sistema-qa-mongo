@@ -38,6 +38,13 @@ export function GlobalChatPanel() {
   const [text, setText] = useState('')
   const [isSending, setIsSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  // Refs para leer estado actual sin recrear la suscripción
+  const viewRef = useRef(view)
+  const chatUserRef = useRef(chatUser)
+  const openRef = useRef(open)
+  useEffect(() => { viewRef.current = view }, [view])
+  useEffect(() => { chatUserRef.current = chatUser }, [chatUser])
+  useEffect(() => { openRef.current = open }, [open])
 
   const loadConversations = useCallback(async () => {
     if (!sesion) return
@@ -54,16 +61,16 @@ export function GlobalChatPanel() {
     loadConversations()
     const unsub = subscribeToDMs(sesion.id, (msg) => {
       setMessages((prev) => {
-        if (view === 'chat' && chatUser?.id === msg.fromUserId) return [...prev, msg]
+        if (viewRef.current === 'chat' && chatUserRef.current?.id === msg.fromUserId) return [...prev, msg]
         return prev
       })
       loadConversations()
-      if (!open || view !== 'chat' || chatUser?.id !== msg.fromUserId) {
+      if (!openRef.current || viewRef.current !== 'chat' || chatUserRef.current?.id !== msg.fromUserId) {
         setUnread((n) => n + 1)
       }
     })
     return unsub
-  }, [sesion, open, view, chatUser])
+  }, [sesion, loadConversations])
 
   useEffect(() => {
     if (open) setUnread(0)
@@ -264,9 +271,10 @@ export function GlobalChatPanel() {
 
       {/* Floating button */}
       <button
+        type="button"
         onClick={() => setOpen((v) => !v)}
         className="fixed bottom-6 right-6 z-50 size-12 rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-lg flex items-center justify-center transition-colors"
-        aria-label="Mensajes"
+        aria-label="Abrir panel de mensajes"
       >
         <MessageSquare className="size-5" />
         {unread > 0 && (

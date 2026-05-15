@@ -4,7 +4,7 @@ import { useRef, Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { AlertTriangle, ArrowRight, ChevronDown } from 'lucide-react'
-import { motion, useInView, animate } from 'framer-motion'
+import { motion, useInView, useReducedMotion, animate } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -180,12 +180,13 @@ function Navbar() {
 // ─── Hero ──────────────────────────────────────────────────────────────────────
 
 function HeroSection() {
+  const shouldReduce = useReducedMotion()
   return (
     <section className="relative overflow-hidden border-b border-gray-200 px-8 pb-16 pt-20">
 
       {/* Pulsing gradient background */}
       <motion.div
-        animate={{ scale: [1, 1.06, 1], opacity: [0.45, 0.65, 0.45] }}
+        animate={shouldReduce ? {} : { scale: [1, 1.06, 1], opacity: [0.45, 0.65, 0.45] }}
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px]"
         style={{ background: 'radial-gradient(circle at 50% 0%, rgba(20,184,166,0.13) 0%, transparent 60%)' }}

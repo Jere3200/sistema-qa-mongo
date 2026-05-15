@@ -181,7 +181,7 @@ export function AppSidebar() {
                   {sesion.nombre.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex flex-col gap-0 overflow-hidden">
-                  <span className="text-sm font-medium truncate">{sesion.nombre}</span>
+                  <span className="text-sm font-medium truncate" title={sesion.nombre}>{sesion.nombre}</span>
                   <span className="text-xs text-muted-foreground truncate">{sesion.email}</span>
                 </div>
               </div>

@@ -30,14 +30,19 @@ export async function getGlobalMessages(): Promise<GlobalMessage[]> {
   return (data || []).map(mapGlobalMessage)
 }
 
+const MAX_MESSAGE_LENGTH = 2000
+
 export async function sendGlobalMessage(content: string): Promise<GlobalMessage> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('No autenticado')
 
+  const sanitized = content.trim().slice(0, MAX_MESSAGE_LENGTH)
+  if (!sanitized) throw new Error('El mensaje no puede estar vacío')
+
   const { data: row, error } = await supabase
     .from('global_messages')
-    .insert({ user_id: user.id, content: content.trim() })
+    .insert({ user_id: user.id, content: sanitized })
     .select('*, profiles(nombre)')
     .single()
   if (error) throw error
