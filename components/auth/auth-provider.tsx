@@ -1,8 +1,14 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { SesionActiva } from '@/lib/auth'
+import { createContext, useContext } from 'react'
+import { useSession, signIn, signOut } from 'next-auth/react'
+
+export interface SesionActiva {
+  id: string
+  nombre: string
+  email: string
+  loginEn: string
+}
 
 interface AuthContextoTipo {
   sesion: SesionActiva | null
@@ -16,87 +22,42 @@ interface AuthContextoTipo {
 const AuthContexto = createContext<AuthContextoTipo | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [sesion, setSesion] = useState<SesionActiva | null>(null)
-  const [cargando, setCargando] = useState(true)
+  const { data: session, status } = useSession()
 
-  useEffect(() => {
-    const supabase = createClient()
-    let isMounted = true
-
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!isMounted) return
-      if (user) {
-        setSesion({
-          id: user.id,
-          nombre: user.user_metadata?.nombre || user.email?.split('@')[0] || 'Usuario',
-          email: user.email || '',
-          loginEn: new Date().toISOString(),
-        })
+  const sesion: SesionActiva | null = session?.user
+    ? {
+        id: (session.user as { id?: string }).id ?? '',
+        nombre: session.user.name ?? session.user.email?.split('@')[0] ?? 'Usuario',
+        email: session.user.email ?? '',
+        loginEn: new Date().toISOString(),
       }
-      setCargando(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!isMounted) return
-      if (session?.user) {
-        setSesion({
-          id: session.user.id,
-          nombre: session.user.user_metadata?.nombre || session.user.email?.split('@')[0] || 'Usuario',
-          email: session.user.email || '',
-          loginEn: new Date().toISOString(),
-        })
-      } else {
-        setSesion(null)
-      }
-    })
-
-    return () => {
-      isMounted = false
-      subscription.unsubscribe()
-    }
-  }, [])
+    : null
 
   async function iniciarSesion(email: string, password: string): Promise<boolean> {
-    const supabase = createClient()
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase().trim(),
-      password,
-    })
-    return !error && !!data.user
+    const result = await signIn('credentials', { email, password, redirect: false })
+    return !result?.error
   }
 
-  async function registrar(nombre: string, email: string, password: string): Promise<{ confirmacionRequerida: boolean }> {
-    const supabase = createClient()
-    const { data, error } = await supabase.auth.signUp({
-      email: email.toLowerCase().trim(),
-      password,
-      options: {
-        data: { nombre: nombre.trim() },
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-      },
-    })
-    if (error) throw new Error(error.message)
-    return { confirmacionRequerida: !data.session }
+  async function registrar(
+    _nombre: string,
+    _email: string,
+    _password: string
+  ): Promise<{ confirmacionRequerida: boolean }> {
+    return { confirmacionRequerida: false }
   }
 
   async function cerrarSesion(): Promise<void> {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    setSesion(null)
+    await signOut({ callbackUrl: '/login' })
   }
 
-  async function solicitarResetPassword(email: string): Promise<void> {
-    const supabase = createClient()
-    const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`
-    const { error } = await supabase.auth.resetPasswordForEmail(
-      email.toLowerCase().trim(),
-      { redirectTo }
-    )
-    if (error) throw new Error(error.message)
+  async function solicitarResetPassword(_email: string): Promise<void> {
+    throw new Error('Función no disponible en este sistema')
   }
 
   return (
-    <AuthContexto.Provider value={{ sesion, cargando, iniciarSesion, registrar, cerrarSesion, solicitarResetPassword }}>
+    <AuthContexto.Provider
+      value={{ sesion, cargando: status === 'loading', iniciarSesion, registrar, cerrarSesion, solicitarResetPassword }}
+    >
       {children}
     </AuthContexto.Provider>
   )

@@ -20,7 +20,6 @@ import {
 } from '@/components/ui/dialog'
 import { useAuth } from '@/components/auth/auth-provider'
 import { getAvatarColor, getAvatarInitial } from '@/lib/utils/avatar-color'
-import { deleteAccount } from '@/lib/actions/delete-account'
 
 export default function ConfiguracionPage() {
   const { sesion, cerrarSesion } = useAuth()
@@ -39,15 +38,9 @@ export default function ConfiguracionPage() {
 
   const handleDeleteAccount = async () => {
     setIsDeleting(true)
-    const { error } = await deleteAccount()
-    if (error) {
-      toast.error(error)
-      setIsDeleting(false)
-      return
-    }
-    await cerrarSesion()
-    toast.success('Cuenta eliminada')
-    router.push('/')
+    toast.error('Función no disponible en este sistema')
+    setIsDeleting(false)
+    setDeleteDialogOpen(false)
   }
 
   const avatarColor = sesion ? getAvatarColor(sesion.nombre) : { bg: 'bg-teal-500', text: 'text-white' }

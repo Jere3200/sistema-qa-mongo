@@ -1,33 +1,13 @@
 'use client'
 
 import { Suspense, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Loader2, ArrowLeft, BookOpen, GitCompare, FlaskConical } from 'lucide-react'
+import { BookOpen, GitCompare, FlaskConical } from 'lucide-react'
 import { motion } from 'framer-motion'
-
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { useAuth } from '@/components/auth/auth-provider'
-
-const esquemaLogin = z.object({
-  email: z.string().email('Ingresá un email válido'),
-  password: z.string().min(1, 'La contraseña es requerida'),
-})
-
-type DatosLogin = z.infer<typeof esquemaLogin>
+import { Input, Button } from '@heroui/react'
 
 const brandFeatures = [
   { icon: BookOpen, text: 'Historias de usuario con criterios de aceptación' },
@@ -36,96 +16,123 @@ const brandFeatures = [
 ]
 
 function FormularioLogin() {
-  const { iniciarSesion } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [errorGeneral, setErrorGeneral] = useState('')
+  const registrado = searchParams.get('registrado') === '1'
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
-  const form = useForm<DatosLogin>({
-    resolver: zodResolver(esquemaLogin),
-    defaultValues: { email: '', password: '' },
-  })
-
-  async function onSubmit(datos: DatosLogin) {
+  async function handleSubmit() {
+    if (!email || !password) {
+      setError('Completá todos los campos.')
+      return
+    }
     setCargando(true)
-    setErrorGeneral('')
-    const exito = await iniciarSesion(datos.email, datos.password)
-    if (exito) {
-      router.push(searchParams.get('redirigir') ?? '/dashboard')
-    } else {
-      setErrorGeneral('Email o contraseña incorrectos. Verificá tus datos.')
+    setError('')
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    })
+    if (result?.error) {
+      setError('Email o contraseña incorrectos. Verificá tus datos.')
       setCargando(false)
+    } else {
+      router.push(searchParams.get('redirigir') ?? '/dashboard')
     }
   }
 
+  async function handleGoogle() {
+    await signIn('google', { callbackUrl: '/dashboard' })
+  }
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-gray-700 text-sm font-medium">Email</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  placeholder="tu@email.com"
-                  autoComplete="email"
-                  className="h-11 border-gray-200 focus-visible:ring-teal-500/30 focus-visible:border-teal-500"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-red-500 text-xs" />
-            </FormItem>
-          )}
-        />
+    <div className="space-y-4">
+      {registrado && (
+        <p className="text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2.5">
+          ¡Cuenta creada exitosamente! Iniciá sesión para continuar.
+        </p>
+      )}
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center justify-between">
-                <FormLabel className="text-gray-700 text-sm font-medium">Contraseña</FormLabel>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-teal-600 hover:text-teal-700 font-medium transition-colors"
-                >
-                  ¿Olvidaste tu contraseña?
-                </Link>
-              </div>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  className="h-11 border-gray-200 focus-visible:ring-teal-500/30 focus-visible:border-teal-500"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage className="text-red-500 text-xs" />
-            </FormItem>
-          )}
-        />
+      <Input
+        label="Email"
+        type="email"
+        placeholder="tu@email.com"
+        autoComplete="email"
+        value={email}
+        onValueChange={setEmail}
+        variant="bordered"
+        classNames={{ inputWrapper: 'border-gray-200' }}
+      />
 
-        {errorGeneral && (
-          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
-            {errorGeneral}
-          </p>
-        )}
+      <Input
+        label="Contraseña"
+        type="password"
+        placeholder="••••••••"
+        autoComplete="current-password"
+        value={password}
+        onValueChange={setPassword}
+        variant="bordered"
+        classNames={{ inputWrapper: 'border-gray-200' }}
+        description={
+          <Link href="/forgot-password" className="text-xs text-teal-600 hover:text-teal-700 font-medium">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        }
+      />
 
-        <Button
-          type="submit"
-          className="w-full h-11 bg-teal-600 text-white hover:bg-teal-700 font-semibold shadow-sm"
-          disabled={cargando}
-        >
-          {cargando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {cargando ? 'Iniciando sesión...' : 'Iniciar sesión'}
-        </Button>
-      </form>
-    </Form>
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+          {error}
+        </p>
+      )}
+
+      <Button
+        onPress={handleSubmit}
+        isLoading={cargando}
+        className="w-full h-11 bg-teal-600 text-white font-semibold"
+        color="primary"
+      >
+        {cargando ? 'Iniciando sesión...' : 'Iniciar sesión'}
+      </Button>
+
+      <div className="relative my-2">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-200" />
+        </div>
+        <div className="relative flex justify-center text-xs text-gray-400">
+          <span className="bg-white px-2">o continuá con</span>
+        </div>
+      </div>
+
+      <Button
+        onPress={handleGoogle}
+        variant="bordered"
+        className="w-full h-11 border-gray-200 text-gray-700 font-medium"
+      >
+        <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+            fill="#4285F4"
+          />
+          <path
+            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+            fill="#34A853"
+          />
+          <path
+            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+            fill="#FBBC05"
+          />
+          <path
+            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+            fill="#EA4335"
+          />
+        </svg>
+        Iniciar sesión con Google
+      </Button>
+    </div>
   )
 }
 
@@ -179,7 +186,6 @@ export default function LoginPage() {
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-sm"
         >
-          {/* Logo mobile */}
           <div className="flex lg:hidden justify-center mb-8">
             <Image src="/logo.png" alt="RQA·Tracer" width={120} height={120} className="h-10 w-auto" />
           </div>
@@ -192,12 +198,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <Suspense fallback={
-              <div className="flex items-center justify-center gap-2 text-gray-400 py-8">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Cargando...</span>
-              </div>
-            }>
+            <Suspense fallback={<div className="py-8 text-center text-sm text-gray-400">Cargando...</div>}>
               <FormularioLogin />
             </Suspense>
 
@@ -214,8 +215,7 @@ export default function LoginPage() {
               href="/"
               className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
             >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Volver al inicio
+              ← Volver al inicio
             </Link>
           </div>
         </motion.div>

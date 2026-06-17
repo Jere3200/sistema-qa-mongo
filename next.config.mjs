@@ -1,3 +1,5 @@
+const isDev = process.env.NODE_ENV !== 'production'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -12,15 +14,18 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'",
+              // unsafe-eval requerido por webpack HMR en desarrollo
+              isDev
+                ? "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'"
+                : "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vercel.live",
+              "connect-src 'self' https://accounts.google.com https://vercel.live",
               "worker-src blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
+              "form-action 'self' https://accounts.google.com",
             ].join('; '),
           },
           { key: 'X-Frame-Options', value: 'DENY' },

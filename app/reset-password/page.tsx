@@ -20,7 +20,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { createClient } from '@/lib/supabase/client'
 
 const esquema = z
   .object({
@@ -45,20 +44,10 @@ export default function ResetPasswordPage() {
     defaultValues: { password: '', confirmar: '' },
   })
 
-  async function onSubmit(datos: Datos) {
+  async function onSubmit(_datos: Datos) {
     setCargando(true)
-    setErrorGeneral('')
-    try {
-      const supabase = createClient()
-      const { error } = await supabase.auth.updateUser({ password: datos.password })
-      if (error) throw new Error(error.message)
-      setExito(true)
-      setTimeout(() => router.push('/login'), 3000)
-    } catch (err) {
-      setErrorGeneral(err instanceof Error ? err.message : 'Ocurrió un error al actualizar la contraseña.')
-    } finally {
-      setCargando(false)
-    }
+    setErrorGeneral('Esta función no está disponible en el sistema actual.')
+    setCargando(false)
   }
 
   return (

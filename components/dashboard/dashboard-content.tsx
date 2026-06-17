@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Tooltip,
   TooltipContent,
@@ -35,6 +36,7 @@ import {
 
 import { getDashboardStats, getProjects, getUserStories, getTestCases } from '@/lib/store'
 import type { Project, UserStory, TestCase, DashboardStats } from '@/lib/types'
+import { UsersList, type UserListItem } from '@/components/users/users-list'
 
 const STATUS_LABELS = {
   backlog: 'Backlog',
@@ -122,7 +124,12 @@ function StatCard({ title, value, icon: Icon, description, tooltip, badge, accen
   )
 }
 
-export function DashboardContent() {
+interface DashboardContentProps {
+  currentUserId: string
+  initialUsers: UserListItem[]
+}
+
+export function DashboardContent({ currentUserId, initialUsers }: DashboardContentProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [allUserStories, setAllUserStories] = useState<UserStory[]>([])
@@ -173,6 +180,13 @@ export function DashboardContent() {
 
   return (
     <TooltipProvider>
+      <Tabs defaultValue="resumen" className="gap-6">
+        <TabsList>
+          <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="resumen">
       <div className="space-y-6">
 
         {stats.totalProjects === 0 && (
@@ -454,6 +468,12 @@ export function DashboardContent() {
         </motion.div>
 
       </div>
+        </TabsContent>
+
+        <TabsContent value="usuarios">
+          <UsersList currentUserId={currentUserId} initialUsers={initialUsers} />
+        </TabsContent>
+      </Tabs>
     </TooltipProvider>
   )
 }

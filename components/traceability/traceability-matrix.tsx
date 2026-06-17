@@ -16,8 +16,6 @@ import {
   TestTube2,
   BookOpen,
 } from 'lucide-react'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -166,7 +164,11 @@ export function TraceabilityMatrix() {
     toast.success('CSV exportado')
   }
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
+    const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable'),
+    ])
     const project = projects.find((p) => p.id === projectFilter)
     const projectName = project?.name || 'Proyecto'
     const dateStr = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })

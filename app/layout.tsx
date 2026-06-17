@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/theme-provider'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { ConditionalLayout } from '@/components/layout/conditional-layout'
+import { Providers } from '@/app/providers'
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -34,13 +35,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} forcedTheme="light">
-          <AuthProvider>
-            <ConditionalLayout>
-              {children}
-            </ConditionalLayout>
-          </AuthProvider>
+          <Providers>
+            <AuthProvider>
+              <ConditionalLayout>
+                {children}
+              </ConditionalLayout>
+            </AuthProvider>
+          </Providers>
           <Toaster />
           {process.env.NODE_ENV === 'production' && <Analytics />}
         </ThemeProvider>

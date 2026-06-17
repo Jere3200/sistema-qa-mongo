@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Lightbulb,
   LogOut,
+  FileCode2,
 } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 
@@ -47,6 +48,11 @@ const mainNavItems = [
     title: 'Proyectos',
     url: '/proyectos',
     icon: FolderKanban,
+  },
+  {
+    title: 'Documentación API',
+    url: '/docs',
+    icon: FileCode2,
   },
 ]
 
