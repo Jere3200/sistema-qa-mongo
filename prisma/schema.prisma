@@ -55,3 +55,168 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+model PasswordResetToken {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
+// ─── Núcleo QA ───────────────────────────────────────────────
+
+model Project {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String   @default("")
+  status      String   @default("active") // active | completed | archived
+  ownerId     String   @db.ObjectId
+  storySeq    Int      @default(0)
+  testSeq     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model Module {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId   String   @db.ObjectId
+  name        String
+  description String   @default("")
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+}
+
+model UserStory {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId  String   @db.ObjectId
+  moduleId   String?  @db.ObjectId
+  code       String // US-001
+  title      String
+  asA        String   @default("")
+  iWant      String   @default("")
+  soThat     String   @default("")
+  status     String   @default("backlog") // backlog | in-progress | testing | done
+  priority   String   @default("medium") // low | medium | high | critical
+  assignedTo String?  @db.ObjectId
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([moduleId])
+}
+
+model AcceptanceCriterion {
+  id          String @id @default(auto()) @map("_id") @db.ObjectId
+  userStoryId String @db.ObjectId
+  description String
+  order       Int    @default(0)
+
+  @@index([userStoryId])
+}
+
+model TestCase {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  projectId     String    @db.ObjectId
+  userStoryId   String    @db.ObjectId
+  code          String // TC-001
+  title         String
+  preconditions String    @default("")
+  given         String    @default("")
+  when          String    @default("")
+  then          String    @default("")
+  status        String    @default("pending") // pending | passed | failed | blocked
+  priority      String    @default("medium") // low | medium | high
+  executedAt    DateTime?
+  executedBy    String?   @db.ObjectId
+  notes         String    @default("")
+  assignedTo    String?   @db.ObjectId
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([userStoryId])
+}
+
+// ─── Colaboración ────────────────────────────────────────────
+
+model ProjectMember {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String   @db.ObjectId
+  userId    String   @db.ObjectId
+  role      String   @default("editor") // owner | editor | viewer
+  joinedAt  DateTime @default(now())
+
+  @@unique([projectId, userId])
+  @@index([userId])
+}
+
+model ProjectInvitation {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String   @db.ObjectId
+  email     String
+  status    String   @default("pending") // pending | accepted
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([email])
+}
+
+model Comment {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userStoryId String?  @db.ObjectId
+  testCaseId  String?  @db.ObjectId
+  userId      String   @db.ObjectId
+  content     String
+  createdAt   DateTime @default(now())
+
+  @@index([userStoryId])
+  @@index([testCaseId])
+}
+
+model ProjectMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  projectId String   @db.ObjectId
+  userId    String   @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model GlobalMessage {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+model DirectMessage {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  fromUserId String   @db.ObjectId
+  toUserId   String   @db.ObjectId
+  content    String
+  createdAt  DateTime @default(now())
+
+  @@index([fromUserId, toUserId])
+  @@index([toUserId])
+}
+
+model StatusHistory {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  storyId   String   @db.ObjectId
+  oldStatus String
+  newStatus String
+  changedBy String   @db.ObjectId
+  changedAt DateTime @default(now())
+
+  @@index([storyId])
+}

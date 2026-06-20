@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator'
 
 import { getProjectMembers, inviteMember, removeMember, getProjectOwnerId } from '@/lib/store'
 import { useAuth } from '@/components/auth/auth-provider'
-import type { ProjectMember } from '@/lib/db/projects'
+import type { ProjectMember } from '@/lib/types'
 import { getAvatarColor, getAvatarInitial } from '@/lib/utils/avatar-color'
 
 interface InviteMemberDialogProps {

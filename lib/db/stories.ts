@@ -1,43 +1,209 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { prisma } from '@/lib/prisma'
 import type { UserStory, AcceptanceCriterion } from '@/lib/types'
+import { toUserStory, toAcceptanceCriterion, groupBy } from './mappers'
+import { requireUserId, assertProjectAccess, isValidObjectId } from './access'
 
-export async function getUserStories(_projectId: string): Promise<UserStory[]> {
-  return []
+async function attachCriteria(
+  stories: Awaited<ReturnType<typeof prisma.userStory.findMany>>
+): Promise<UserStory[]> {
+  const storyIds = stories.map((s) => s.id)
+  const criteria = storyIds.length
+    ? await prisma.acceptanceCriterion.findMany({ where: { userStoryId: { in: storyIds } } })
+    : []
+  const byStory = groupBy(criteria, (c) => c.userStoryId)
+  return stories.map((s) => toUserStory(s, byStory.get(s.id) ?? []))
 }
 
-export async function getUserStoriesByModule(_moduleId: string): Promise<UserStory[]> {
-  return []
+export async function getUserStories(projectId: string): Promise<UserStory[]> {
+  if (!isValidObjectId(projectId)) return []
+  const userId = await requireUserId()
+  await assertProjectAccess(userId, projectId)
+  const stories = await prisma.userStory.findMany({
+    where: { projectId },
+    orderBy: { code: 'asc' },
+  })
+  return attachCriteria(stories)
 }
 
-export async function getUserStory(_id: string): Promise<UserStory | undefined> {
-  return undefined
+export async function getUserStoriesByModule(moduleId: string): Promise<UserStory[]> {
+  if (!isValidObjectId(moduleId)) return []
+  const userId = await requireUserId()
+  const mod = await prisma.module.findUnique({ where: { id: moduleId }, select: { projectId: true } })
+  if (!mod) return []
+  await assertProjectAccess(userId, mod.projectId)
+  const stories = await prisma.userStory.findMany({
+    where: { moduleId },
+    orderBy: { code: 'asc' },
+  })
+  return attachCriteria(stories)
+}
+
+export async function getUserStory(id: string): Promise<UserStory | undefined> {
+  if (!isValidObjectId(id)) return undefined
+  const userId = await requireUserId()
+  const row = await prisma.userStory.findUnique({ where: { id } })
+  if (!row) return undefined
+  await assertProjectAccess(userId, row.projectId)
+  const criteria = await prisma.acceptanceCriterion.findMany({ where: { userStoryId: id } })
+  return toUserStory(row, criteria)
 }
 
 export async function createUserStory(
-  _data: Omit<UserStory, 'id' | 'code' | 'acceptanceCriteria' | 'createdAt' | 'updatedAt'>
+  data: Omit<UserStory, 'id' | 'code' | 'acceptanceCriteria' | 'createdAt' | 'updatedAt'>
 ): Promise<UserStory> {
-  throw new Error('Not connected to database')
+  const userId = await requireUserId()
+  await assertProjectAccess(userId, data.projectId)
+  const project = await prisma.project.update({
+    where: { id: data.projectId },
+    data: { storySeq: { increment: 1 } },
+    select: { storySeq: true },
+  })
+  const code = `US-${String(project.storySeq).padStart(3, '0')}`
+  const row = await prisma.userStory.create({
+    data: {
+      projectId: data.projectId,
+      moduleId: data.moduleId ?? null,
+      code,
+      title: data.title,
+      asA: data.asA,
+      iWant: data.iWant,
+      soThat: data.soThat,
+      status: data.status,
+      priority: data.priority,
+      assignedTo: data.assignedTo ?? null,
+    },
+  })
+  revalidatePath('/historias')
+  revalidatePath('/dashboard')
+  revalidatePath(`/proyectos/${data.projectId}`)
+  return toUserStory(row, [])
 }
 
-export async function updateUserStory(_id: string, _data: Partial<UserStory>): Promise<UserStory | undefined> {
-  return undefined
+export async function updateUserStory(
+  id: string,
+  data: Partial<UserStory>
+): Promise<UserStory | undefined> {
+  if (!isValidObjectId(id)) return undefined
+  const userId = await requireUserId()
+  const existing = await prisma.userStory.findUnique({ where: { id } })
+  if (!existing) return undefined
+  await assertProjectAccess(userId, existing.projectId)
+
+  const row = await prisma.userStory.update({
+    where: { id },
+    data: {
+      ...(data.title !== undefined ? { title: data.title } : {}),
+      ...(data.moduleId !== undefined ? { moduleId: data.moduleId } : {}),
+      ...(data.asA !== undefined ? { asA: data.asA } : {}),
+      ...(data.iWant !== undefined ? { iWant: data.iWant } : {}),
+      ...(data.soThat !== undefined ? { soThat: data.soThat } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.priority !== undefined ? { priority: data.priority } : {}),
+      ...(data.assignedTo !== undefined ? { assignedTo: data.assignedTo } : {}),
+    },
+  })
+
+  if (data.status !== undefined && data.status !== existing.status) {
+    await prisma.statusHistory.create({
+      data: {
+        storyId: id,
+        oldStatus: existing.status,
+        newStatus: data.status,
+        changedBy: userId,
+      },
+    })
+  }
+
+  const criteria = await prisma.acceptanceCriterion.findMany({ where: { userStoryId: id } })
+  revalidatePath('/historias')
+  revalidatePath(`/historias/${id}`)
+  revalidatePath('/dashboard')
+  return toUserStory(row, criteria)
 }
 
-export async function deleteUserStory(_id: string): Promise<boolean> {
-  return false
+export async function deleteUserStory(id: string): Promise<boolean> {
+  if (!isValidObjectId(id)) return false
+  const userId = await requireUserId()
+  const existing = await prisma.userStory.findUnique({ where: { id }, select: { projectId: true } })
+  if (!existing) return false
+  await assertProjectAccess(userId, existing.projectId)
+
+  await prisma.acceptanceCriterion.deleteMany({ where: { userStoryId: id } })
+  await prisma.testCase.deleteMany({ where: { userStoryId: id } })
+  await prisma.comment.deleteMany({ where: { userStoryId: id } })
+  await prisma.statusHistory.deleteMany({ where: { storyId: id } })
+  await prisma.userStory.delete({ where: { id } })
+
+  revalidatePath('/historias')
+  revalidatePath('/dashboard')
+  return true
 }
 
 export async function addAcceptanceCriterion(
-  _userStoryId: string,
-  _description: string
+  userStoryId: string,
+  description: string
 ): Promise<AcceptanceCriterion> {
-  throw new Error('Not connected to database')
+  if (!isValidObjectId(userStoryId)) throw new Error('Historia inválida')
+  const userId = await requireUserId()
+  const story = await prisma.userStory.findUnique({
+    where: { id: userStoryId },
+    select: { projectId: true },
+  })
+  if (!story) throw new Error('Historia no encontrada')
+  await assertProjectAccess(userId, story.projectId)
+
+  const order = await prisma.acceptanceCriterion.count({ where: { userStoryId } })
+  const row = await prisma.acceptanceCriterion.create({
+    data: { userStoryId, description, order },
+  })
+  revalidatePath(`/historias/${userStoryId}`)
+  return toAcceptanceCriterion(row)
 }
 
-export async function removeAcceptanceCriterion(_id: string): Promise<void> {}
+export async function removeAcceptanceCriterion(id: string): Promise<void> {
+  if (!isValidObjectId(id)) return
+  const userId = await requireUserId()
+  const criterion = await prisma.acceptanceCriterion.findUnique({
+    where: { id },
+    select: { userStoryId: true },
+  })
+  if (!criterion) return
+  const story = await prisma.userStory.findUnique({
+    where: { id: criterion.userStoryId },
+    select: { projectId: true },
+  })
+  if (story) await assertProjectAccess(userId, story.projectId)
+  await prisma.acceptanceCriterion.delete({ where: { id } })
+  revalidatePath(`/historias/${criterion.userStoryId}`)
+}
 
 export async function replaceAcceptanceCriteria(
-  _userStoryId: string,
-  _descriptions: string[]
+  userStoryId: string,
+  descriptions: string[]
 ): Promise<AcceptanceCriterion[]> {
-  return []
+  if (!isValidObjectId(userStoryId)) return []
+  const userId = await requireUserId()
+  const story = await prisma.userStory.findUnique({
+    where: { id: userStoryId },
+    select: { projectId: true },
+  })
+  if (!story) return []
+  await assertProjectAccess(userId, story.projectId)
+
+  await prisma.acceptanceCriterion.deleteMany({ where: { userStoryId } })
+  const cleaned = descriptions.map((d) => d.trim()).filter(Boolean)
+  if (cleaned.length > 0) {
+    await prisma.acceptanceCriterion.createMany({
+      data: cleaned.map((description, order) => ({ userStoryId, description, order })),
+    })
+  }
+  const rows = await prisma.acceptanceCriterion.findMany({
+    where: { userStoryId },
+    orderBy: { order: 'asc' },
+  })
+  revalidatePath(`/historias/${userStoryId}`)
+  return rows.map(toAcceptanceCriterion)
 }

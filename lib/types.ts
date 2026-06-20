@@ -86,3 +86,15 @@ export interface TraceabilityRow {
   coverage: 'none' | 'partial' | 'full'
   canComplete: boolean // Has at least 1 passed TC
 }
+
+// Collaboration
+export type MemberRole = 'owner' | 'editor' | 'viewer'
+
+export interface ProjectMember {
+  id: string
+  projectId: string
+  userId: string
+  role: MemberRole
+  nombre: string
+  joinedAt: Date
+}
