@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { createUserSchema } from '@/lib/validations/user'
+import { getAuthenticatedUser, isAdmin } from '@/lib/auth/guards'
 
 function unauthorized() {
   return NextResponse.json({ success: false, error: 'No autorizado.' }, { status: 401 })
 }
 
+function forbidden() {
+  return NextResponse.json({ success: false, error: 'No tenés permisos para esta acción.' }, { status: 403 })
+}
+
 export async function GET() {
-  const session = await auth()
-  if (!session?.user) return unauthorized()
+  const caller = await getAuthenticatedUser()
+  if (!caller) return unauthorized()
 
   const users = await prisma.user.findMany({
     select: { id: true, name: true, email: true },
@@ -21,8 +25,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await auth()
-  if (!session?.user) return unauthorized()
+  const caller = await getAuthenticatedUser()
+  if (!caller) return unauthorized()
+  if (!isAdmin(caller)) return forbidden()
 
   let body: unknown
   try {

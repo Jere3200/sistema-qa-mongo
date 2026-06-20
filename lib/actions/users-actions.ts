@@ -2,27 +2,23 @@
 
 import { revalidatePath } from 'next/cache'
 import bcrypt from 'bcryptjs'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { createUserSchema, updateUserSchema } from '@/lib/validations/user'
+import { getAuthenticatedUser, isAdmin } from '@/lib/auth/guards'
 
 type ActionResult = { success: true } | { success: false; error: string }
 
-async function requireSessionUserId(): Promise<string | null> {
-  const session = await auth()
-  if (!session?.user) return null
-  return (session.user as { id: string }).id
-}
+const FORBIDDEN: ActionResult = { success: false, error: 'No tenés permisos para esta acción.' }
+const UNAUTHORIZED: ActionResult = { success: false, error: 'No autorizado.' }
 
 export async function createUser(data: {
   name: string
   email: string
   password: string
 }): Promise<ActionResult> {
-  const callerId = await requireSessionUserId()
-  if (!callerId) {
-    return { success: false, error: 'No autorizado.' }
-  }
+  const caller = await getAuthenticatedUser()
+  if (!caller) return UNAUTHORIZED
+  if (!isAdmin(caller)) return FORBIDDEN
 
   const parsed = createUserSchema.safeParse(data)
   if (!parsed.success) {
@@ -47,10 +43,9 @@ export async function updateUser(
   id: string,
   data: { name: string; email: string; password?: string }
 ): Promise<ActionResult> {
-  const callerId = await requireSessionUserId()
-  if (!callerId) {
-    return { success: false, error: 'No autorizado.' }
-  }
+  const caller = await getAuthenticatedUser()
+  if (!caller) return UNAUTHORIZED
+  if (!isAdmin(caller) && caller.id !== id) return FORBIDDEN
 
   const parsed = updateUserSchema.safeParse({ ...data, password: data.password ?? '' })
   if (!parsed.success) {
@@ -76,11 +71,10 @@ export async function updateUser(
 }
 
 export async function deleteUser(id: string): Promise<ActionResult> {
-  const callerId = await requireSessionUserId()
-  if (!callerId) {
-    return { success: false, error: 'No autorizado.' }
-  }
-  if (callerId === id) {
+  const caller = await getAuthenticatedUser()
+  if (!caller) return UNAUTHORIZED
+  if (!isAdmin(caller)) return FORBIDDEN
+  if (caller.id === id) {
     return { success: false, error: 'No podés eliminar tu propio usuario.' }
   }
 

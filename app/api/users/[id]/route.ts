@@ -1,20 +1,27 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { updateUserSchema } from '@/lib/validations/user'
+import { getAuthenticatedUser, isAdmin } from '@/lib/auth/guards'
 
 function unauthorized() {
   return NextResponse.json({ success: false, error: 'No autorizado.' }, { status: 401 })
 }
 
+function forbidden() {
+  return NextResponse.json({ success: false, error: 'No tenés permisos para esta acción.' }, { status: 403 })
+}
+
 type Params = { params: Promise<{ id: string }> }
 
 export async function PUT(request: Request, { params }: Params) {
-  const session = await auth()
-  if (!session?.user) return unauthorized()
+  const caller = await getAuthenticatedUser()
+  if (!caller) return unauthorized()
 
   const { id } = await params
+
+  // Solo un admin puede editar a otros usuarios; el resto solo a sí mismo.
+  if (!isAdmin(caller) && caller.id !== id) return forbidden()
 
   let body: unknown
   try {
@@ -53,13 +60,13 @@ export async function PUT(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const session = await auth()
-  if (!session?.user) return unauthorized()
+  const caller = await getAuthenticatedUser()
+  if (!caller) return unauthorized()
+  if (!isAdmin(caller)) return forbidden()
 
-  const callerId = (session.user as { id: string }).id
   const { id } = await params
 
-  if (callerId === id) {
+  if (caller.id === id) {
     return NextResponse.json(
       { success: false, error: 'No podés eliminar tu propio usuario.' },
       { status: 403 }

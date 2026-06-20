@@ -15,6 +15,15 @@ const brandFeatures = [
   { icon: GitCompare, text: 'Matriz de trazabilidad automática' },
 ]
 
+const DEFAULT_REDIRECT = '/dashboard'
+
+function getSafeRedirect(target: string | null): string {
+  if (!target) return DEFAULT_REDIRECT
+  const isInternalPath =
+    target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\')
+  return isInternalPath ? target : DEFAULT_REDIRECT
+}
+
 function FormularioLogin() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -40,7 +49,7 @@ function FormularioLogin() {
       setError('Email o contraseña incorrectos. Verificá tus datos.')
       setCargando(false)
     } else {
-      router.push(searchParams.get('redirigir') ?? '/dashboard')
+      router.push(getSafeRedirect(searchParams.get('redirigir')))
     }
   }
 
