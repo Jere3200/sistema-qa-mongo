@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import {
   Plus,
@@ -187,16 +188,22 @@ export function ProjectsList() {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProjects.map((project) => (
-            <ProjectCard
+          {filteredProjects.map((project, i) => (
+            <motion.div
               key={project.id}
-              project={project}
-              onEdit={() => { setEditingProject(project); setDialogOpen(true) }}
-              onArchive={() => handleArchive(project)}
-              onRestore={() => handleRestore(project)}
-              onDelete={() => { setProjectToDelete(project); setDeleteDialogOpen(true) }}
-              onInvite={() => setInviteProject(project)}
-            />
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35, delay: Math.min(i * 0.05, 0.3), ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ProjectCard
+                project={project}
+                onEdit={() => { setEditingProject(project); setDialogOpen(true) }}
+                onArchive={() => handleArchive(project)}
+                onRestore={() => handleRestore(project)}
+                onDelete={() => { setProjectToDelete(project); setDeleteDialogOpen(true) }}
+                onInvite={() => setInviteProject(project)}
+              />
+            </motion.div>
           ))}
         </div>
       )}

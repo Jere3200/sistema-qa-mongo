@@ -1,7 +1,6 @@
 'use server'
 
 import crypto from 'node:crypto'
-import { headers } from 'next/headers'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { sendPasswordResetEmail } from '@/lib/services/email'
@@ -15,11 +14,12 @@ function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex')
 }
 
-async function buildResetUrl(rawToken: string): Promise<string> {
-  const h = await headers()
-  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000'
-  const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
-  return `${proto}://${host}/reset-password?token=${rawToken}`
+// La base de la URL se lee de configuración de confianza del servidor, nunca
+// del header Host (previene host header injection / password reset poisoning).
+function buildResetUrl(rawToken: string): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.AUTH_URL
+  if (!appUrl) throw new Error('NEXT_PUBLIC_APP_URL no está configurada')
+  return `${appUrl.replace(/\/$/, '')}/reset-password?token=${rawToken}`
 }
 
 /**
@@ -45,7 +45,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
     },
   })
 
-  const resetUrl = await buildResetUrl(rawToken)
+  const resetUrl = buildResetUrl(rawToken)
   await sendPasswordResetEmail(normalized, resetUrl)
 }
 
