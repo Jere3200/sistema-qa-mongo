@@ -46,8 +46,7 @@ import {
   deleteUserStory,
   getStatusHistory,
 } from '@/lib/store'
-import type { UserStory, Project, Module, TestCase, UserStoryStatus, TestCaseStatus } from '@/lib/types'
-import type { StatusHistoryEntry } from '@/lib/db/status-history'
+import type { UserStory, Project, Module, TestCase, UserStoryStatus, TestCaseStatus, StatusHistoryEntry } from '@/lib/types'
 import { CommentSection } from '@/components/comments/comment-section'
 
 const statusLabels: Record<UserStoryStatus, string> = {

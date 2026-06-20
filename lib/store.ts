@@ -45,7 +45,7 @@ export {
 
 export { getDashboardStats } from './db/stats'
 export { getTraceabilityMatrix } from './db/traceability'
-export { getMessages, sendMessage, subscribeToMessages } from './db/chat'
-export { getGlobalMessages, sendGlobalMessage, subscribeToGlobalMessages } from './db/global-chat'
+export { getMessages, sendMessage } from './db/chat'
+export { getGlobalMessages, sendGlobalMessage } from './db/global-chat'
 export { getComments, addComment, deleteComment } from './db/comments'
 export { getStatusHistory } from './db/status-history'

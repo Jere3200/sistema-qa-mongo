@@ -98,3 +98,62 @@ export interface ProjectMember {
   nombre: string
   joinedAt: Date
 }
+
+export interface Comment {
+  id: string
+  userStoryId: string | null
+  testCaseId: string | null
+  userId: string
+  authorName: string
+  content: string
+  createdAt: Date
+}
+
+export interface ChatMessage {
+  id: string
+  projectId: string
+  userId: string
+  userName: string
+  content: string
+  createdAt: Date
+}
+
+export interface GlobalMessage {
+  id: string
+  userId: string
+  userName: string
+  content: string
+  createdAt: Date
+}
+
+export interface DMMessage {
+  id: string
+  fromUserId: string
+  toUserId: string
+  fromUserName: string
+  content: string
+  createdAt: Date
+}
+
+export interface DMConversation {
+  userId: string
+  nombre: string
+  lastMessage: string
+  lastAt: Date
+}
+
+export interface UserProfile {
+  id: string
+  nombre: string
+  email: string
+}
+
+export interface StatusHistoryEntry {
+  id: string
+  storyId: string
+  oldStatus: string
+  newStatus: string
+  changedBy: string
+  authorName: string
+  changedAt: Date
+}

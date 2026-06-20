@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { X, Send } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
-import { getMessages, sendMessage, subscribeToMessages } from '@/lib/store'
+import { getMessages, sendMessage } from '@/lib/store'
 import { useAuth } from '@/components/auth/auth-provider'
-import type { ChatMessage } from '@/lib/db/chat'
+import type { ChatMessage } from '@/lib/types'
+
+const CHAT_POLL_MS = 4000
 
 interface ChatPanelProps {
   projectId: string
@@ -24,16 +26,21 @@ export function ChatPanel({ projectId, onClose }: ChatPanelProps) {
   const [isSending, setIsSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    getMessages(projectId)
+  const refresh = useCallback(() => {
+    return getMessages(projectId)
       .then(setMessages)
+      .catch(() => {})
+  }, [projectId])
+
+  useEffect(() => {
+    let active = true
+    getMessages(projectId)
+      .then((msgs) => { if (active) setMessages(msgs) })
       .catch(() => toast.error('Error al cargar el chat'))
 
-    const unsub = subscribeToMessages(projectId, (msg) => {
-      setMessages((prev) => [...prev, msg])
-    })
-    return unsub
-  }, [projectId])
+    const interval = setInterval(() => { if (active) refresh() }, CHAT_POLL_MS)
+    return () => { active = false; clearInterval(interval) }
+  }, [projectId, refresh])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -45,6 +52,7 @@ export function ChatPanel({ projectId, onClose }: ChatPanelProps) {
     try {
       await sendMessage(projectId, text.trim())
       setText('')
+      await refresh()
     } catch {
       toast.error('Error al enviar el mensaje')
     } finally {

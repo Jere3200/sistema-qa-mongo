@@ -1,19 +1,40 @@
-export interface StatusHistoryEntry {
-  id: string
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import type { StatusHistoryEntry } from '@/lib/types'
+import { requireUserId, getUserNameMap, isValidObjectId } from './access'
+
+export async function getStatusHistory(storyId: string): Promise<StatusHistoryEntry[]> {
+  if (!isValidObjectId(storyId)) return []
+  await requireUserId()
+  const rows = await prisma.statusHistory.findMany({
+    where: { storyId },
+    orderBy: { changedAt: 'desc' },
+  })
+  const names = await getUserNameMap(rows.map((r) => r.changedBy))
+  return rows.map((r) => ({
+    id: r.id,
+    storyId: r.storyId,
+    oldStatus: r.oldStatus,
+    newStatus: r.newStatus,
+    changedBy: r.changedBy,
+    authorName: names.get(r.changedBy) ?? 'Usuario',
+    changedAt: r.changedAt,
+  }))
+}
+
+export async function logStatusChange(params: {
   storyId: string
   oldStatus: string
   newStatus: string
-  changedBy: string
-  authorName: string
-  changedAt: Date
+}): Promise<void> {
+  const userId = await requireUserId()
+  await prisma.statusHistory.create({
+    data: {
+      storyId: params.storyId,
+      oldStatus: params.oldStatus,
+      newStatus: params.newStatus,
+      changedBy: userId,
+    },
+  })
 }
-
-export async function getStatusHistory(_storyId: string): Promise<StatusHistoryEntry[]> {
-  return []
-}
-
-export async function logStatusChange(_params: {
-  storyId: string
-  oldStatus: string
-  newStatus: string
-}): Promise<void> {}

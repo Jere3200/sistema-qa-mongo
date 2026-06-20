@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
 import { getComments, addComment, deleteComment } from '@/lib/db/comments'
-import type { Comment } from '@/lib/db/comments'
+import type { Comment } from '@/lib/types'
 import { getAvatarColor, getAvatarInitial } from '@/lib/utils/avatar-color'
 import { useAuth } from '@/components/auth/auth-provider'
 

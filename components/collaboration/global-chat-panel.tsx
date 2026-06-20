@@ -13,12 +13,13 @@ import {
   getConversations,
   getDMMessages,
   sendDMMessage,
-  subscribeToDMs,
 } from '@/lib/db/direct-messages'
 import { useAuth } from '@/components/auth/auth-provider'
-import type { DMMessage, DMConversation, UserProfile } from '@/lib/db/direct-messages'
+import type { DMMessage, DMConversation, UserProfile } from '@/lib/types'
 
 type View = 'list' | 'chat'
+
+const DM_POLL_MS = 5000
 
 export function GlobalChatPanel() {
   const { sesion } = useAuth()
@@ -59,17 +60,15 @@ export function GlobalChatPanel() {
   useEffect(() => {
     if (!sesion) return
     loadConversations()
-    const unsub = subscribeToDMs(sesion.id, (msg) => {
-      setMessages((prev) => {
-        if (viewRef.current === 'chat' && chatUserRef.current?.id === msg.fromUserId) return [...prev, msg]
-        return prev
-      })
+    const interval = setInterval(() => {
       loadConversations()
-      if (!openRef.current || viewRef.current !== 'chat' || chatUserRef.current?.id !== msg.fromUserId) {
-        setUnread((n) => n + 1)
+      if (viewRef.current === 'chat' && chatUserRef.current) {
+        getDMMessages(chatUserRef.current.id)
+          .then((msgs) => setMessages(msgs))
+          .catch(() => {})
       }
-    })
-    return unsub
+    }, DM_POLL_MS)
+    return () => clearInterval(interval)
   }, [sesion, loadConversations])
 
   useEffect(() => {

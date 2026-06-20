@@ -58,3 +58,14 @@ export async function isProjectOwner(userId: string, projectId: string): Promise
   })
   return project?.ownerId === userId
 }
+
+/** Resuelve nombres visibles para una lista de userIds (name → email → "Usuario"). */
+export async function getUserNameMap(userIds: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(userIds)]
+  if (unique.length === 0) return new Map()
+  const users = await prisma.user.findMany({
+    where: { id: { in: unique } },
+    select: { id: true, name: true, email: true },
+  })
+  return new Map(users.map((u) => [u.id, u.name ?? u.email ?? 'Usuario']))
+}
