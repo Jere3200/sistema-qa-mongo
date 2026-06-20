@@ -80,8 +80,12 @@ export async function getDMMessages(otherUserId: string): Promise<DMMessage[]> {
 export async function sendDMMessage(toUserId: string, content: string): Promise<DMMessage> {
   const userId = await requireUserId()
   if (!isValidObjectId(toUserId)) throw new Error('Destinatario inválido')
+  if (toUserId === userId) throw new Error('No podés enviarte un mensaje a vos mismo')
   const trimmed = content.trim()
   if (!trimmed) throw new Error('El mensaje no puede estar vacío')
+
+  const recipient = await prisma.user.findUnique({ where: { id: toUserId }, select: { id: true } })
+  if (!recipient) throw new Error('Destinatario inválido')
 
   const row = await prisma.directMessage.create({
     data: { fromUserId: userId, toUserId, content: trimmed },

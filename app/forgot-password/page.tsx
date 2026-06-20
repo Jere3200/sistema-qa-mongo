@@ -19,7 +19,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { useAuth } from '@/components/auth/auth-provider'
+import { requestPasswordReset } from '@/lib/actions/password-reset'
 
 const esquema = z.object({
   email: z.string().email('Ingresá un email válido'),
@@ -34,7 +34,6 @@ const brandFeatures = [
 ]
 
 export default function ForgotPasswordPage() {
-  const { solicitarResetPassword } = useAuth()
   const [enviado, setEnviado] = useState(false)
   const [cargando, setCargando] = useState(false)
   const [errorGeneral, setErrorGeneral] = useState('')
@@ -48,10 +47,10 @@ export default function ForgotPasswordPage() {
     setCargando(true)
     setErrorGeneral('')
     try {
-      await solicitarResetPassword(datos.email)
+      await requestPasswordReset(datos.email)
       setEnviado(true)
-    } catch (err) {
-      setErrorGeneral(err instanceof Error ? err.message : 'Ocurrió un error al enviar el email.')
+    } catch {
+      setErrorGeneral('No se pudo enviar el email. Intentá de nuevo en unos minutos.')
     } finally {
       setCargando(false)
     }

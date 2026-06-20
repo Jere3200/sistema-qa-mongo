@@ -3,19 +3,29 @@
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import type { Comment } from '@/lib/types'
-import { requireUserId, getUserNameMap, isValidObjectId } from './access'
+import {
+  requireUserId,
+  getUserNameMap,
+  isValidObjectId,
+  assertStoryAccess,
+  assertTestCaseAccess,
+} from './access'
 
 export async function getComments(params: {
   userStoryId?: string
   testCaseId?: string
 }): Promise<Comment[]> {
-  await requireUserId()
+  const userId = await requireUserId()
+  if (params.userStoryId) {
+    await assertStoryAccess(userId, params.userStoryId)
+  } else if (params.testCaseId) {
+    await assertTestCaseAccess(userId, params.testCaseId)
+  } else {
+    return []
+  }
   const where = params.userStoryId
     ? { userStoryId: params.userStoryId }
-    : params.testCaseId
-      ? { testCaseId: params.testCaseId }
-      : null
-  if (!where) return []
+    : { testCaseId: params.testCaseId }
 
   const rows = await prisma.comment.findMany({ where, orderBy: { createdAt: 'asc' } })
   const names = await getUserNameMap(rows.map((r) => r.userId))
@@ -38,6 +48,14 @@ export async function addComment(params: {
   const userId = await requireUserId()
   const content = params.content.trim()
   if (!content) throw new Error('El comentario no puede estar vacío')
+
+  const hasStory = Boolean(params.userStoryId)
+  const hasTestCase = Boolean(params.testCaseId)
+  if (hasStory === hasTestCase) {
+    throw new Error('Indicá una historia o un caso de prueba (exactamente uno)')
+  }
+  if (params.userStoryId) await assertStoryAccess(userId, params.userStoryId)
+  if (params.testCaseId) await assertTestCaseAccess(userId, params.testCaseId)
 
   const row = await prisma.comment.create({
     data: {

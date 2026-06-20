@@ -59,6 +59,28 @@ export async function isProjectOwner(userId: string, projectId: string): Promise
   return project?.ownerId === userId
 }
 
+/** Verifica acceso al proyecto dueño de una historia. Lanza si no corresponde. */
+export async function assertStoryAccess(userId: string, storyId: string): Promise<void> {
+  if (!isValidObjectId(storyId)) throw new Error('No autorizado')
+  const story = await prisma.userStory.findUnique({
+    where: { id: storyId },
+    select: { projectId: true },
+  })
+  if (!story) throw new Error('No autorizado')
+  await assertProjectAccess(userId, story.projectId)
+}
+
+/** Verifica acceso al proyecto dueño de un caso de prueba. Lanza si no corresponde. */
+export async function assertTestCaseAccess(userId: string, testCaseId: string): Promise<void> {
+  if (!isValidObjectId(testCaseId)) throw new Error('No autorizado')
+  const testCase = await prisma.testCase.findUnique({
+    where: { id: testCaseId },
+    select: { projectId: true },
+  })
+  if (!testCase) throw new Error('No autorizado')
+  await assertProjectAccess(userId, testCase.projectId)
+}
+
 /** Resuelve nombres visibles para una lista de userIds (name → email → "Usuario"). */
 export async function getUserNameMap(userIds: string[]): Promise<Map<string, string>> {
   const unique = [...new Set(userIds)]

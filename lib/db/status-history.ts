@@ -2,11 +2,12 @@
 
 import { prisma } from '@/lib/prisma'
 import type { StatusHistoryEntry } from '@/lib/types'
-import { requireUserId, getUserNameMap, isValidObjectId } from './access'
+import { requireUserId, getUserNameMap, isValidObjectId, assertStoryAccess } from './access'
 
 export async function getStatusHistory(storyId: string): Promise<StatusHistoryEntry[]> {
   if (!isValidObjectId(storyId)) return []
-  await requireUserId()
+  const userId = await requireUserId()
+  await assertStoryAccess(userId, storyId)
   const rows = await prisma.statusHistory.findMany({
     where: { storyId },
     orderBy: { changedAt: 'desc' },
@@ -29,6 +30,7 @@ export async function logStatusChange(params: {
   newStatus: string
 }): Promise<void> {
   const userId = await requireUserId()
+  await assertStoryAccess(userId, params.storyId)
   await prisma.statusHistory.create({
     data: {
       storyId: params.storyId,
