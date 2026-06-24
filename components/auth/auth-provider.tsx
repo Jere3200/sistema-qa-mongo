@@ -47,7 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function cerrarSesion(): Promise<void> {
-    await signOut({ callbackUrl: '/login' })
+    // Esperamos a que se limpie la cookie (redirect:false) y recién ahí navegamos
+    // con una recarga dura, para evitar quedar con sesión "stale".
+    await signOut({ redirect: false })
+    window.location.assign('/login')
   }
 
   async function solicitarResetPassword(_email: string): Promise<void> {

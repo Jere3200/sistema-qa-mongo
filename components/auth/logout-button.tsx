@@ -5,9 +5,14 @@ import { Button } from '@heroui/react'
 import { LogOut } from 'lucide-react'
 
 export function LogoutButton() {
+  async function handleLogout() {
+    await signOut({ redirect: false })
+    window.location.assign('/login')
+  }
+
   return (
     <Button
-      onPress={() => signOut({ callbackUrl: '/login' })}
+      onPress={handleLogout}
       color="danger"
       variant="flat"
       startContent={<LogOut className="size-4" />}

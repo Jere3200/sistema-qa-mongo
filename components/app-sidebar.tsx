@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   FolderKanban,
@@ -76,12 +76,10 @@ const qaNavItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const { sesion, cerrarSesion } = useAuth()
 
   function handleLogout() {
-    cerrarSesion()
-    router.push('/')
+    void cerrarSesion()
   }
 
   return (
