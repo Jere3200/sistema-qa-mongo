@@ -217,13 +217,16 @@ function Navbar() {
         <div className="ml-auto flex items-center gap-1.5 sm:gap-2">
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
             <Button variant="ghost" className="text-[12px] text-gray-600 hover:text-gray-900 sm:text-[13.5px]" asChild>
-              <Link href="/login">Iniciar</Link>
+              <Link href="/login">
+                <span className="sm:hidden">Login</span>
+                <span className="hidden sm:inline">Iniciar sesión</span>
+              </Link>
             </Button>
           </motion.div>
           <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.35, ...SPRING }}>
             <Button className="gap-1 bg-teal-600 px-2.5 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-teal-700 sm:gap-2 sm:px-4 sm:py-2 sm:text-sm" asChild>
               <Link href="/register">
-                <span className="sm:hidden">Gratis</span>
+                <span className="sm:hidden">Registrarse</span>
                 <span className="hidden sm:inline">Comenzar gratis</span>
                 <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Link>
