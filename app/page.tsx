@@ -11,6 +11,38 @@ const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
 const SPRING = { type: 'spring' as const, stiffness: 380, damping: 26 }
 const VALUE_PROPS = ['Sin instalación', '100% en el navegador', 'Gratis']
 
+// ─── Background patterns ───────────────────────────────────────────────────────
+
+function GridLines({ fade = 'top' }: { fade?: 'top' | 'center' }) {
+  const mask =
+    fade === 'center'
+      ? 'radial-gradient(ellipse 80% 80% at 50% 50%, #000 30%, transparent 80%)'
+      : 'radial-gradient(ellipse 90% 70% at 50% 0%, #000 35%, transparent 78%)'
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0"
+      style={{
+        backgroundImage:
+          'linear-gradient(to right, rgba(15,23,42,0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.045) 1px, transparent 1px)',
+        backgroundSize: '64px 64px',
+        maskImage: mask,
+        WebkitMaskImage: mask,
+      }}
+    />
+  )
+}
+
+function GlowAccent({ className, color = 'rgba(20,184,166,0.12)' }: { className: string; color?: string }) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute z-0 rounded-full blur-3xl ${className}`}
+      style={{ background: `radial-gradient(circle, ${color} 0%, transparent 70%)` }}
+    />
+  )
+}
+
 // ─── Matrix helpers ────────────────────────────────────────────────────────────
 
 function getBigCell(r: number, c: number): 'pass' | 'warn' | 'fail' | 'empty' {
@@ -212,7 +244,7 @@ function HeroSection() {
       {/* Dot grid for depth */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10"
+        className="pointer-events-none absolute inset-0 z-0"
         style={{
           backgroundImage: 'radial-gradient(circle, rgba(13,148,136,0.12) 1px, transparent 1px)',
           backgroundSize: '22px 22px',
@@ -225,11 +257,11 @@ function HeroSection() {
       <motion.div
         animate={shouldReduce ? {} : { scale: [1, 1.06, 1], opacity: [0.45, 0.65, 0.45] }}
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px]"
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-[600px]"
         style={{ background: 'radial-gradient(circle at 50% 0%, rgba(20,184,166,0.13) 0%, transparent 60%)' }}
       />
 
-      <div className="relative mx-auto max-w-[1240px]">
+      <div className="relative z-10 mx-auto max-w-[1240px]">
 
         {/* Pill */}
         <motion.div
@@ -539,8 +571,9 @@ const BAND_METRICS = [
 
 function MetricsBand() {
   return (
-    <section className="border-b border-gray-200 bg-white px-8 py-16">
-      <div className="mx-auto grid max-w-[1240px] grid-cols-2 gap-y-10 sm:grid-cols-4">
+    <section className="relative overflow-hidden border-b border-gray-200 bg-white px-8 py-16">
+      <GridLines fade="center" />
+      <div className="relative z-10 mx-auto grid max-w-[1240px] grid-cols-2 gap-y-10 sm:grid-cols-4">
         {BAND_METRICS.map((m, i) => (
           <BandStat key={m.label} value={m.value} suffix={m.suffix} label={m.label} delay={i * 0.08} />
         ))}
@@ -633,8 +666,10 @@ const TOOLS = [
 
 function ToolsSection() {
   return (
-    <section className="border-b border-gray-200 bg-gray-50 px-8 py-[120px]" id="producto">
-      <div className="mx-auto max-w-[1240px]">
+    <section className="relative overflow-hidden border-b border-gray-200 bg-gray-50 px-8 py-[120px]" id="producto">
+      <GridLines fade="center" />
+      <GlowAccent className="left-1/2 top-[-120px] h-[420px] w-[620px] -translate-x-1/2" />
+      <div className="relative z-10 mx-auto max-w-[1240px]">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -760,8 +795,10 @@ const STEPS = [
 
 function HowItWorksSection() {
   return (
-    <section className="border-b border-gray-200 bg-white px-8 py-[120px]" id="como-funciona">
-      <div className="mx-auto max-w-[1240px]">
+    <section className="relative overflow-hidden border-b border-gray-200 bg-white px-8 py-[120px]" id="como-funciona">
+      <GridLines fade="center" />
+      <GlowAccent className="right-[-100px] top-[10%] h-[460px] w-[460px]" color="rgba(20,184,166,0.10)" />
+      <div className="relative z-10 mx-auto max-w-[1240px]">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -848,8 +885,10 @@ const RULE_ITEMS = [
 
 function TheRuleSection() {
   return (
-    <section className="border-b border-gray-200 bg-gray-50 px-8 py-[120px]" id="trazabilidad">
-      <div className="mx-auto max-w-[1240px]">
+    <section className="relative overflow-hidden border-b border-gray-200 bg-gray-50 px-8 py-[120px]" id="trazabilidad">
+      <GridLines fade="center" />
+      <GlowAccent className="bottom-[-120px] left-[-120px] h-[420px] w-[520px]" color="rgba(20,184,166,0.09)" />
+      <div className="relative z-10 mx-auto max-w-[1240px]">
         <div className="grid items-center gap-[80px] lg:grid-cols-[1.1fr_1fr]">
 
           <motion.div
