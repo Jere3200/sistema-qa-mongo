@@ -104,6 +104,17 @@ export async function updateUserStory(
   if (!parsed.success) throw new Error(parsed.error.issues[0].message)
   const fields = parsed.data
 
+  // Regla central del sistema (enforced server-side, no solo en la UI):
+  // una historia no puede marcarse "done" sin al menos un caso de prueba aprobado.
+  if (fields.status === 'done' && existing.status !== 'done') {
+    const passedCount = await prisma.testCase.count({
+      where: { userStoryId: id, status: 'passed' },
+    })
+    if (passedCount === 0) {
+      throw new Error('No se puede completar la historia sin al menos un caso de prueba aprobado.')
+    }
+  }
+
   const row = await prisma.userStory.update({
     where: { id },
     data: {
