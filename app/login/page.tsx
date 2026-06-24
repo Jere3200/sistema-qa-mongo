@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { BookOpen, GitCompare, FlaskConical } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Input, Button } from '@heroui/react'
+import { TurnstileWidget, isCaptchaEnabled } from '@/components/auth/turnstile-widget'
 
 const brandFeatures = [
   { icon: BookOpen, text: 'Historias de usuario con criterios de aceptación' },
@@ -30,6 +31,7 @@ function FormularioLogin() {
   const registrado = searchParams.get('registrado') === '1'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
@@ -38,11 +40,16 @@ function FormularioLogin() {
       setError('Completá todos los campos.')
       return
     }
+    if (isCaptchaEnabled && !captchaToken) {
+      setError('Completá la verificación de seguridad.')
+      return
+    }
     setCargando(true)
     setError('')
     const result = await signIn('credentials', {
       email,
       password,
+      turnstileToken: captchaToken,
       redirect: false,
     })
     if (result?.error) {
@@ -92,6 +99,8 @@ function FormularioLogin() {
         }
       />
 
+      <TurnstileWidget onToken={setCaptchaToken} />
+
       {error && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
           {error}
@@ -101,6 +110,7 @@ function FormularioLogin() {
       <Button
         onPress={handleSubmit}
         isLoading={cargando}
+        isDisabled={isCaptchaEnabled && !captchaToken}
         className="w-full h-11 bg-teal-600 text-white font-semibold"
         color="primary"
       >

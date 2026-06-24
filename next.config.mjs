@@ -16,12 +16,13 @@ const nextConfig = {
               "default-src 'self'",
               // unsafe-eval requerido por webpack HMR en desarrollo
               isDev
-                ? "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline'"
-                : "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline'",
+                ? "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com"
+                : "script-src 'self' 'wasm-unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https://accounts.google.com https://vercel.live",
+              "connect-src 'self' https://accounts.google.com https://vercel.live https://challenges.cloudflare.com",
+              "frame-src 'self' https://challenges.cloudflare.com",
               "worker-src blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",

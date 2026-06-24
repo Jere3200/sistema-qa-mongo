@@ -8,6 +8,7 @@ import { BookOpen, GitCompare, FlaskConical } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Input, Button } from '@heroui/react'
 import { registerUser } from '@/lib/actions/register-action'
+import { TurnstileWidget, isCaptchaEnabled } from '@/components/auth/turnstile-widget'
 
 const brandFeatures = [
   { icon: BookOpen, text: 'Historias de usuario con criterios de aceptación' },
@@ -21,6 +22,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmar, setConfirmar] = useState('')
+  const [captchaToken, setCaptchaToken] = useState('')
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
 
@@ -42,10 +44,14 @@ export default function RegisterPage() {
       setError('Las contraseñas no coinciden.')
       return
     }
+    if (isCaptchaEnabled && !captchaToken) {
+      setError('Completá la verificación de seguridad.')
+      return
+    }
 
     setCargando(true)
     try {
-      await registerUser(nombre, email, password)
+      await registerUser(nombre, email, password, captchaToken)
       router.push('/login?registrado=1')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ocurrió un error al crear la cuenta.')
@@ -158,6 +164,8 @@ export default function RegisterPage() {
                 classNames={{ inputWrapper: 'border-gray-200' }}
               />
 
+              <TurnstileWidget onToken={setCaptchaToken} />
+
               {error && (
                 <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
                   {error}
@@ -167,6 +175,7 @@ export default function RegisterPage() {
               <Button
                 onPress={handleSubmit}
                 isLoading={cargando}
+                isDisabled={isCaptchaEnabled && !captchaToken}
                 className="w-full h-11 bg-teal-600 text-white font-semibold mt-2"
                 color="primary"
               >

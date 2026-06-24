@@ -7,7 +7,8 @@ import { requireUserId, getUserNameMap, isValidObjectId } from './access'
 export async function searchUsers(query: string): Promise<UserProfile[]> {
   const userId = await requireUserId()
   const q = query.trim()
-  if (!q) return []
+  // Mínimo 2 caracteres: evita enumerar usuarios con búsquedas de 1 letra.
+  if (q.length < 2) return []
   const users = await prisma.user.findMany({
     where: {
       id: { not: userId },
