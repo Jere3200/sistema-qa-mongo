@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import type { TestCase, TestCaseStatus } from '@/lib/types'
 import { toTestCase } from './mappers'
+import {
+  createTestCaseSchema,
+  updateTestCaseSchema,
+  executeTestCaseSchema,
+} from '@/lib/validations/qa'
 import { requireUserId, assertProjectAccess, isValidObjectId } from './access'
 
 export async function getTestCases(projectId: string): Promise<TestCase[]> {
@@ -46,29 +51,32 @@ export async function createTestCase(
   data: Omit<TestCase, 'id' | 'code' | 'createdAt' | 'updatedAt'>
 ): Promise<TestCase> {
   const userId = await requireUserId()
-  await assertProjectAccess(userId, data.projectId)
+  const parsed = createTestCaseSchema.safeParse(data)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
+  const input = parsed.data
+  await assertProjectAccess(userId, input.projectId)
   const project = await prisma.project.update({
-    where: { id: data.projectId },
+    where: { id: input.projectId },
     data: { testSeq: { increment: 1 } },
     select: { testSeq: true },
   })
   const code = `TC-${String(project.testSeq).padStart(3, '0')}`
   const row = await prisma.testCase.create({
     data: {
-      projectId: data.projectId,
-      userStoryId: data.userStoryId,
+      projectId: input.projectId,
+      userStoryId: input.userStoryId,
       code,
-      title: data.title,
-      preconditions: data.preconditions,
-      given: data.given,
-      when: data.when,
-      then: data.then,
-      status: data.status,
-      priority: data.priority,
-      notes: data.notes,
-      executedAt: data.executedAt ?? null,
-      executedBy: data.executedBy ?? null,
-      assignedTo: data.assignedTo ?? null,
+      title: input.title,
+      preconditions: input.preconditions,
+      given: input.given,
+      when: input.when,
+      then: input.then,
+      status: input.status,
+      priority: input.priority,
+      notes: input.notes,
+      executedAt: input.executedAt ?? null,
+      executedBy: input.executedBy ?? null,
+      assignedTo: input.assignedTo ?? null,
     },
   })
   revalidatePath('/casos-prueba')
@@ -86,19 +94,22 @@ export async function updateTestCase(
   const existing = await prisma.testCase.findUnique({ where: { id }, select: { projectId: true } })
   if (!existing) return undefined
   await assertProjectAccess(userId, existing.projectId)
+  const parsed = updateTestCaseSchema.safeParse(data)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
+  const fields = parsed.data
   const row = await prisma.testCase.update({
     where: { id },
     data: {
-      ...(data.title !== undefined ? { title: data.title } : {}),
-      ...(data.userStoryId !== undefined ? { userStoryId: data.userStoryId } : {}),
-      ...(data.preconditions !== undefined ? { preconditions: data.preconditions } : {}),
-      ...(data.given !== undefined ? { given: data.given } : {}),
-      ...(data.when !== undefined ? { when: data.when } : {}),
-      ...(data.then !== undefined ? { then: data.then } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
-      ...(data.priority !== undefined ? { priority: data.priority } : {}),
-      ...(data.notes !== undefined ? { notes: data.notes } : {}),
-      ...(data.assignedTo !== undefined ? { assignedTo: data.assignedTo } : {}),
+      ...(fields.title !== undefined ? { title: fields.title } : {}),
+      ...(fields.userStoryId !== undefined ? { userStoryId: fields.userStoryId } : {}),
+      ...(fields.preconditions !== undefined ? { preconditions: fields.preconditions } : {}),
+      ...(fields.given !== undefined ? { given: fields.given } : {}),
+      ...(fields.when !== undefined ? { when: fields.when } : {}),
+      ...(fields.then !== undefined ? { then: fields.then } : {}),
+      ...(fields.status !== undefined ? { status: fields.status } : {}),
+      ...(fields.priority !== undefined ? { priority: fields.priority } : {}),
+      ...(fields.notes !== undefined ? { notes: fields.notes } : {}),
+      ...(fields.assignedTo !== undefined ? { assignedTo: fields.assignedTo } : {}),
     },
   })
   revalidatePath('/casos-prueba')
@@ -115,12 +126,19 @@ export async function executeTestCase(
 ): Promise<TestCase | undefined> {
   if (!isValidObjectId(id)) return undefined
   const userId = await requireUserId()
+  const parsed = executeTestCaseSchema.safeParse({ status, executedBy, notes })
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
   const existing = await prisma.testCase.findUnique({ where: { id }, select: { projectId: true } })
   if (!existing) return undefined
   await assertProjectAccess(userId, existing.projectId)
   const row = await prisma.testCase.update({
     where: { id },
-    data: { status, notes, executedBy, executedAt: new Date() },
+    data: {
+      status: parsed.data.status,
+      notes: parsed.data.notes,
+      executedBy: parsed.data.executedBy,
+      executedAt: new Date(),
+    },
   })
   revalidatePath('/casos-prueba')
   revalidatePath('/trazabilidad')

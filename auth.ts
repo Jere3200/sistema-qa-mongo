@@ -4,6 +4,9 @@ import Google from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+
+const LOGIN_WINDOW_MS = 15 * 60 * 1000
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -11,10 +14,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Google,
     Credentials({
-      async authorize(credentials) {
-        const email = credentials?.email as string | undefined
+      async authorize(credentials, request) {
+        const rawEmail = credentials?.email as string | undefined
         const password = credentials?.password as string | undefined
-        if (!email || !password) return null
+        if (!rawEmail || !password) return null
+        const email = rawEmail.toLowerCase().trim()
+
+        // Rate limit por IP para frenar fuerza bruta (evita bloqueo por cuenta).
+        const ip = request?.headers ? getClientIp(request.headers) : 'unknown'
+        const limit = await checkRateLimit(`login:${ip}`, 20, LOGIN_WINDOW_MS)
+        if (!limit.allowed) return null
 
         const user = await prisma.user.findUnique({ where: { email } })
         if (!user?.hashedPassword) return null

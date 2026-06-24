@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import type { UserStory, AcceptanceCriterion } from '@/lib/types'
 import { toUserStory, toAcceptanceCriterion, groupBy } from './mappers'
+import {
+  createUserStorySchema,
+  updateUserStorySchema,
+  acceptanceCriterionSchema,
+} from '@/lib/validations/qa'
 import { requireUserId, assertProjectAccess, isValidObjectId } from './access'
 
 async function attachCriteria(
@@ -55,30 +60,33 @@ export async function createUserStory(
   data: Omit<UserStory, 'id' | 'code' | 'acceptanceCriteria' | 'createdAt' | 'updatedAt'>
 ): Promise<UserStory> {
   const userId = await requireUserId()
-  await assertProjectAccess(userId, data.projectId)
+  const parsed = createUserStorySchema.safeParse(data)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
+  const input = parsed.data
+  await assertProjectAccess(userId, input.projectId)
   const project = await prisma.project.update({
-    where: { id: data.projectId },
+    where: { id: input.projectId },
     data: { storySeq: { increment: 1 } },
     select: { storySeq: true },
   })
   const code = `US-${String(project.storySeq).padStart(3, '0')}`
   const row = await prisma.userStory.create({
     data: {
-      projectId: data.projectId,
-      moduleId: data.moduleId ?? null,
+      projectId: input.projectId,
+      moduleId: input.moduleId ?? null,
       code,
-      title: data.title,
-      asA: data.asA,
-      iWant: data.iWant,
-      soThat: data.soThat,
-      status: data.status,
-      priority: data.priority,
-      assignedTo: data.assignedTo ?? null,
+      title: input.title,
+      asA: input.asA,
+      iWant: input.iWant,
+      soThat: input.soThat,
+      status: input.status,
+      priority: input.priority,
+      assignedTo: input.assignedTo ?? null,
     },
   })
   revalidatePath('/historias')
   revalidatePath('/dashboard')
-  revalidatePath(`/proyectos/${data.projectId}`)
+  revalidatePath(`/proyectos/${input.projectId}`)
   return toUserStory(row, [])
 }
 
@@ -92,26 +100,30 @@ export async function updateUserStory(
   if (!existing) return undefined
   await assertProjectAccess(userId, existing.projectId)
 
+  const parsed = updateUserStorySchema.safeParse(data)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
+  const fields = parsed.data
+
   const row = await prisma.userStory.update({
     where: { id },
     data: {
-      ...(data.title !== undefined ? { title: data.title } : {}),
-      ...(data.moduleId !== undefined ? { moduleId: data.moduleId } : {}),
-      ...(data.asA !== undefined ? { asA: data.asA } : {}),
-      ...(data.iWant !== undefined ? { iWant: data.iWant } : {}),
-      ...(data.soThat !== undefined ? { soThat: data.soThat } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
-      ...(data.priority !== undefined ? { priority: data.priority } : {}),
-      ...(data.assignedTo !== undefined ? { assignedTo: data.assignedTo } : {}),
+      ...(fields.title !== undefined ? { title: fields.title } : {}),
+      ...(fields.moduleId !== undefined ? { moduleId: fields.moduleId } : {}),
+      ...(fields.asA !== undefined ? { asA: fields.asA } : {}),
+      ...(fields.iWant !== undefined ? { iWant: fields.iWant } : {}),
+      ...(fields.soThat !== undefined ? { soThat: fields.soThat } : {}),
+      ...(fields.status !== undefined ? { status: fields.status } : {}),
+      ...(fields.priority !== undefined ? { priority: fields.priority } : {}),
+      ...(fields.assignedTo !== undefined ? { assignedTo: fields.assignedTo } : {}),
     },
   })
 
-  if (data.status !== undefined && data.status !== existing.status) {
+  if (fields.status !== undefined && fields.status !== existing.status) {
     await prisma.statusHistory.create({
       data: {
         storyId: id,
         oldStatus: existing.status,
-        newStatus: data.status,
+        newStatus: fields.status,
         changedBy: userId,
       },
     })
@@ -155,9 +167,12 @@ export async function addAcceptanceCriterion(
   if (!story) throw new Error('Historia no encontrada')
   await assertProjectAccess(userId, story.projectId)
 
+  const parsed = acceptanceCriterionSchema.safeParse(description)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
+
   const order = await prisma.acceptanceCriterion.count({ where: { userStoryId } })
   const row = await prisma.acceptanceCriterion.create({
-    data: { userStoryId, description, order },
+    data: { userStoryId, description: parsed.data, order },
   })
   revalidatePath(`/historias/${userStoryId}`)
   return toAcceptanceCriterion(row)
@@ -193,8 +208,14 @@ export async function replaceAcceptanceCriteria(
   if (!story) return []
   await assertProjectAccess(userId, story.projectId)
 
+  const cleaned: string[] = []
+  for (const d of descriptions) {
+    const result = acceptanceCriterionSchema.safeParse(d)
+    if (result.success) cleaned.push(result.data)
+    if (cleaned.length >= 100) break
+  }
+
   await prisma.acceptanceCriterion.deleteMany({ where: { userStoryId } })
-  const cleaned = descriptions.map((d) => d.trim()).filter(Boolean)
   if (cleaned.length > 0) {
     await prisma.acceptanceCriterion.createMany({
       data: cleaned.map((description, order) => ({ userStoryId, description, order })),

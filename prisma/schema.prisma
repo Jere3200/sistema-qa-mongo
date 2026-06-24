@@ -66,6 +66,15 @@ model PasswordResetToken {
   @@index([email])
 }
 
+model RateLimit {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  key       String   @unique
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 // ─── Núcleo QA ───────────────────────────────────────────────
 
 model Project {

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import type { Project, ProjectMember, MemberRole } from '@/lib/types'
 import { toProject } from './mappers'
+import { createProjectSchema, updateProjectSchema } from '@/lib/validations/qa'
 import {
   requireUserId,
   getAccessibleProjectIds,
@@ -37,11 +38,13 @@ export async function createProject(
   data: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<Project> {
   const userId = await requireUserId()
+  const parsed = createProjectSchema.safeParse(data)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
   const row = await prisma.project.create({
     data: {
-      name: data.name,
-      description: data.description,
-      status: data.status,
+      name: parsed.data.name,
+      description: parsed.data.description,
+      status: parsed.data.status,
       ownerId: userId,
     },
   })
@@ -60,12 +63,15 @@ export async function updateProject(
   if (!isValidObjectId(id)) return undefined
   const userId = await requireUserId()
   await assertProjectAccess(userId, id)
+  const parsed = updateProjectSchema.safeParse(data)
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message)
+  const fields = parsed.data
   const row = await prisma.project.update({
     where: { id },
     data: {
-      ...(data.name !== undefined ? { name: data.name } : {}),
-      ...(data.description !== undefined ? { description: data.description } : {}),
-      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(fields.name !== undefined ? { name: fields.name } : {}),
+      ...(fields.description !== undefined ? { description: fields.description } : {}),
+      ...(fields.status !== undefined ? { status: fields.status } : {}),
     },
   })
   revalidatePath('/proyectos')
