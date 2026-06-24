@@ -24,7 +24,7 @@ function GridLines({ fade = 'top' }: { fade?: 'top' | 'center' }) {
       className="pointer-events-none absolute inset-0 z-0"
       style={{
         backgroundImage:
-          'linear-gradient(to right, rgba(15,23,42,0.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.045) 1px, transparent 1px)',
+          'linear-gradient(to right, rgba(15,23,42,0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.08) 1px, transparent 1px)',
         backgroundSize: '64px 64px',
         maskImage: mask,
         WebkitMaskImage: mask,
