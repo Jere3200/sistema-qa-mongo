@@ -219,12 +219,16 @@ export function UserStoryForm({ storyId }: UserStoryFormProps) {
               </Field>
               <Field>
                 <FieldLabel htmlFor="module">Módulo (opcional)</FieldLabel>
-                <Select value={moduleId} onValueChange={setModuleId} disabled={!projectId}>
+                <Select
+                  value={moduleId || 'none'}
+                  onValueChange={(v) => setModuleId(v === 'none' ? '' : v)}
+                  disabled={!projectId}
+                >
                   <SelectTrigger id="module">
                     <SelectValue placeholder="Sin módulo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin módulo</SelectItem>
+                    <SelectItem value="none">Sin módulo</SelectItem>
                     {modules.map((m) => (
                       <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
                     ))}

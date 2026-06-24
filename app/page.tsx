@@ -4,7 +4,7 @@ import { useRef, Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { AlertTriangle, ArrowRight, ChevronDown } from 'lucide-react'
-import { motion, useInView, useReducedMotion, animate } from 'framer-motion'
+import { motion, useInView, useReducedMotion, useScroll, useSpring, animate } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -128,11 +128,36 @@ function AnimatedStat({ num, suffix, label, color }: { num: number; suffix: stri
   )
 }
 
+// ─── Scroll progress ─────────────────────────────────────────────────────────
+
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll()
+  const scaleX = useSpring(scrollYProgress, { stiffness: 120, damping: 30, mass: 0.3 })
+  return (
+    <motion.div
+      style={{ scaleX }}
+      className="fixed inset-x-0 top-0 z-[60] h-[3px] origin-left bg-gradient-to-r from-teal-500 to-teal-400"
+    />
+  )
+}
+
 // ─── Navbar ────────────────────────────────────────────────────────────────────
 
 function Navbar() {
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/85 backdrop-blur-lg">
+    <header
+      className={`sticky top-0 z-50 border-b backdrop-blur-lg transition-all duration-300 ${
+        scrolled ? 'border-gray-200 bg-white/90 shadow-[0_1px_12px_-4px_rgba(13,31,26,0.12)]' : 'border-transparent bg-white/70'
+      }`}
+    >
       <div className="mx-auto flex h-[56px] max-w-[1240px] items-center gap-9 px-8">
         <Link href="/" className="flex shrink-0 items-center" aria-label="RQA-Tracer">
           <Image src="/logo.png" alt="RQA·Tracer" width={120} height={120} priority className="h-10 w-auto" />
@@ -183,6 +208,18 @@ function HeroSection() {
   const shouldReduce = useReducedMotion()
   return (
     <section className="relative overflow-hidden border-b border-gray-200 px-8 pb-16 pt-20">
+
+      {/* Dot grid for depth */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          backgroundImage: 'radial-gradient(circle, rgba(13,148,136,0.12) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+          maskImage: 'radial-gradient(ellipse 75% 55% at 50% 0%, #000 25%, transparent 75%)',
+          WebkitMaskImage: 'radial-gradient(ellipse 75% 55% at 50% 0%, #000 25%, transparent 75%)',
+        }}
+      />
 
       {/* Pulsing gradient background */}
       <motion.div
@@ -452,6 +489,61 @@ function HeroSection() {
           </motion.div>
 
         </div>
+      </div>
+    </section>
+  )
+}
+
+// ─── Metrics band ──────────────────────────────────────────────────────────────
+
+function BandStat({ value, suffix, label, delay }: { value: number; suffix: string; label: string; delay: number }) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true, margin: '-40px' })
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    if (!inView) return
+    const controls = animate(0, value, {
+      duration: 1.2,
+      delay,
+      ease: [0.16, 1, 0.3, 1],
+      onUpdate: (v) => setCount(Math.round(v)),
+    })
+    return controls.stop
+  }, [inView, value, delay])
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.4 }}
+      transition={{ duration: 0.5, delay, ease: EASE }}
+      className="text-center"
+    >
+      <div className="text-[40px] font-semibold tracking-[-1.5px] tabular-nums text-gray-900 sm:text-[52px]">
+        {count}
+        <span className="text-teal-600">{suffix}</span>
+      </div>
+      <div className="mt-1 text-[13px] leading-snug text-gray-500">{label}</div>
+    </motion.div>
+  )
+}
+
+const BAND_METRICS = [
+  { value: 100, suffix: '%', label: 'Cobertura exigida para completar' },
+  { value: 4, suffix: '', label: 'Herramientas integradas' },
+  { value: 3, suffix: '', label: 'Pasos del flujo QA' },
+  { value: 0, suffix: '', label: 'Requisitos sin su prueba' },
+]
+
+function MetricsBand() {
+  return (
+    <section className="border-b border-gray-200 bg-white px-8 py-16">
+      <div className="mx-auto grid max-w-[1240px] grid-cols-2 gap-y-10 sm:grid-cols-4">
+        {BAND_METRICS.map((m, i) => (
+          <BandStat key={m.label} value={m.value} suffix={m.suffix} label={m.label} delay={i * 0.08} />
+        ))}
       </div>
     </section>
   )
@@ -994,8 +1086,10 @@ function Footer() {
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
+      <ScrollProgress />
       <Navbar />
       <HeroSection />
+      <MetricsBand />
       <ToolsSection />
       <HowItWorksSection />
       <TheRuleSection />

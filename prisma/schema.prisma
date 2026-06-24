@@ -134,7 +134,7 @@ model TestCase {
   status        String    @default("pending") // pending | passed | failed | blocked
   priority      String    @default("medium") // low | medium | high
   executedAt    DateTime?
-  executedBy    String?   @db.ObjectId
+  executedBy    String? // nombre libre de quien ejecutó (no es un userId)
   notes         String    @default("")
   assignedTo    String?   @db.ObjectId
   createdAt     DateTime  @default(now())
