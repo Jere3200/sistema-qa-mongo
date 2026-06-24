@@ -6,7 +6,7 @@ import { AppSidebar } from '@/components/app-sidebar'
 import { GlobalChatPanel } from '@/components/collaboration/global-chat-panel'
 import { PageTransition } from '@/components/layout/page-transition'
 
-const RUTAS_PUBLICAS = ['/', '/login', '/register']
+const RUTAS_PUBLICAS = ['/', '/login', '/register', '/forgot-password', '/reset-password']
 
 export function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
