@@ -1110,11 +1110,6 @@ function Footer() {
           <Image src="/logo.png" alt="RQA·Tracer" width={120} height={120} className="h-10 w-auto opacity-80" />
         </Link>
         <div className="font-mono text-[12.5px] text-gray-500">Proyecto académico · v1.0 · 2026</div>
-        <nav className="flex gap-5 text-[12.5px] text-gray-500">
-          <a href="#acerca" className="transition-colors hover:text-gray-300">Acerca</a>
-          <a href="#docs"   className="transition-colors hover:text-gray-300">Documentación</a>
-          <a href="#github" className="transition-colors hover:text-gray-300">GitHub</a>
-        </nav>
       </div>
     </footer>
   )
