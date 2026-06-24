@@ -13,6 +13,7 @@ import {
   getConversations,
   getDMMessages,
   sendDMMessage,
+  countIncomingDMsSince,
 } from '@/lib/db/direct-messages'
 import { useAuth } from '@/components/auth/auth-provider'
 import type { DMMessage, DMConversation, UserProfile } from '@/lib/types'
@@ -43,6 +44,8 @@ export function GlobalChatPanel() {
   const viewRef = useRef(view)
   const chatUserRef = useRef(chatUser)
   const openRef = useRef(open)
+  // Marca temporal de la última vez que el usuario "miró" los mensajes.
+  const lastSeenRef = useRef<Date>(new Date())
   useEffect(() => { viewRef.current = view }, [view])
   useEffect(() => { chatUserRef.current = chatUser }, [chatUser])
   useEffect(() => { openRef.current = open }, [open])
@@ -67,12 +70,24 @@ export function GlobalChatPanel() {
           .then((msgs) => setMessages(msgs))
           .catch(() => {})
       }
+      // Mientras el panel está abierto se considera "leído"; cerrado, contamos
+      // los mensajes entrantes desde la última vez que se miró.
+      if (openRef.current) {
+        lastSeenRef.current = new Date()
+      } else {
+        countIncomingDMsSince(lastSeenRef.current.toISOString())
+          .then(setUnread)
+          .catch(() => {})
+      }
     }, DM_POLL_MS)
     return () => clearInterval(interval)
   }, [sesion, loadConversations])
 
   useEffect(() => {
-    if (open) setUnread(0)
+    if (open) {
+      setUnread(0)
+      lastSeenRef.current = new Date()
+    }
   }, [open])
 
   useEffect(() => {

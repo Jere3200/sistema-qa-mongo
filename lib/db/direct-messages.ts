@@ -77,6 +77,15 @@ export async function getDMMessages(otherUserId: string): Promise<DMMessage[]> {
   }))
 }
 
+export async function countIncomingDMsSince(sinceISO: string): Promise<number> {
+  const userId = await requireUserId()
+  const since = new Date(sinceISO)
+  if (Number.isNaN(since.getTime())) return 0
+  return prisma.directMessage.count({
+    where: { toUserId: userId, createdAt: { gt: since } },
+  })
+}
+
 export async function sendDMMessage(toUserId: string, content: string): Promise<DMMessage> {
   const userId = await requireUserId()
   if (!isValidObjectId(toUserId)) throw new Error('Destinatario inválido')

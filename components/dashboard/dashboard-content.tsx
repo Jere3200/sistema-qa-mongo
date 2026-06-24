@@ -127,9 +127,10 @@ function StatCard({ title, value, icon: Icon, description, tooltip, badge, accen
 interface DashboardContentProps {
   currentUserId: string
   initialUsers: UserListItem[]
+  isAdmin: boolean
 }
 
-export function DashboardContent({ currentUserId, initialUsers }: DashboardContentProps) {
+export function DashboardContent({ currentUserId, initialUsers, isAdmin }: DashboardContentProps) {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [allUserStories, setAllUserStories] = useState<UserStory[]>([])
@@ -181,10 +182,12 @@ export function DashboardContent({ currentUserId, initialUsers }: DashboardConte
   return (
     <TooltipProvider>
       <Tabs defaultValue="resumen" className="gap-6">
-        <TabsList>
-          <TabsTrigger value="resumen">Resumen</TabsTrigger>
-          <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
-        </TabsList>
+        {isAdmin && (
+          <TabsList>
+            <TabsTrigger value="resumen">Resumen</TabsTrigger>
+            <TabsTrigger value="usuarios">Usuarios</TabsTrigger>
+          </TabsList>
+        )}
 
         <TabsContent value="resumen">
       <div className="space-y-6">
@@ -470,9 +473,11 @@ export function DashboardContent({ currentUserId, initialUsers }: DashboardConte
       </div>
         </TabsContent>
 
-        <TabsContent value="usuarios">
-          <UsersList currentUserId={currentUserId} initialUsers={initialUsers} />
-        </TabsContent>
+        {isAdmin && (
+          <TabsContent value="usuarios">
+            <UsersList currentUserId={currentUserId} initialUsers={initialUsers} />
+          </TabsContent>
+        )}
       </Tabs>
     </TooltipProvider>
   )

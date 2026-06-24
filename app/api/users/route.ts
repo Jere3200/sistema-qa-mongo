@@ -15,6 +15,7 @@ function forbidden() {
 export async function GET() {
   const caller = await getAuthenticatedUser()
   if (!caller) return unauthorized()
+  if (!isAdmin(caller)) return forbidden()
 
   const users = await prisma.user.findMany({
     select: { id: true, name: true, email: true },
